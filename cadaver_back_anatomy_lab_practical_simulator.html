@@ -1,0 +1,2810 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AnatLab Pro — Posterior Back Cadaver Dissection & Practical Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            lab: {
+              950: '#090d14',
+              900: '#0f1622',
+              800: '#182234',
+              700: '#24324c',
+              600: '#334668',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d14;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    /* Custom scrollbars for panels */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f1622;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* Interactive Cadaver Structure Hover & Selection Effects */
+    .cadaver-structure {
+      cursor: pointer;
+      transition: filter 0.22s ease, opacity 0.25s ease, transform 0.25s ease;
+    }
+    .cadaver-structure:hover {
+      filter: brightness(1.28) drop-shadow(0 0 8px rgba(56, 189, 248, 0.55));
+    }
+    .cadaver-structure.selected-structure {
+      filter: brightness(1.38) drop-shadow(0 0 14px rgba(250, 204, 21, 0.9));
+    }
+    .cadaver-structure.dimmed-structure {
+      opacity: 0.28;
+      filter: grayscale(0.35);
+    }
+    .cadaver-structure.border-highlight-sup {
+      filter: brightness(1.45) drop-shadow(0 0 12px #38bdf8);
+    }
+    .cadaver-structure.border-highlight-inf {
+      filter: brightness(1.45) drop-shadow(0 0 12px #a855f7);
+    }
+    .cadaver-structure.border-highlight-lat {
+      filter: brightness(1.45) drop-shadow(0 0 12px #22c55e);
+    }
+
+    /* Pulsing Lab Practical Tag Pin */
+    @keyframes pinPulse {
+      0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.95));
+      }
+      50% {
+        transform: scale(1.13);
+        filter: drop-shadow(0 0 18px rgba(239, 68, 68, 1));
+      }
+    }
+    .exam-flag-pin {
+      animation: pinPulse 1.8s infinite ease-in-out;
+      transform-origin: center;
+      transform-box: fill-box;
+    }
+
+    /* Glowing nerve & vessel paths */
+    .nerve-path {
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: all 0.2s ease;
+    }
+    .vessel-path {
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: all 0.2s ease;
+    }
+    .scapula-protracted {
+      transform: translate(-18px, -4px) rotate(-4deg);
+      transform-origin: 310px 350px;
+      transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .scapula-normal {
+      transform: translate(0px, 0px) rotate(0deg);
+      transform-origin: 310px 350px;
+      transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col bg-lab-950 text-slate-100 select-none">
+
+  <!-- Top Header Bar -->
+  <header class="sticky top-0 z-40 bg-lab-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-6 py-2.5">
+    <div class="max-w-[1800px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-600 via-red-700 to-amber-600 flex items-center justify-center shadow-lg shadow-rose-950/60 border border-rose-400/30">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18m0-18c-3.5 0-6 2-6 5.5S8.5 14 12 14s6-2 6-5.5S15.5 3 12 3zm-5 14c0 2 2.2 4 5 4s5-2 5-4" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">AnatLab Pro: Back Cadaver Dissection</h1>
+            <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">
+              20 High-Yield Tagged Structures
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Gross Anatomy Prosection Explorer &amp; Tagged Cadaver Practical Exam Simulator</p>
+        </div>
+      </div>
+
+      <!-- Mode Switcher Tabs -->
+      <div class="flex items-center bg-lab-950 p-1 rounded-xl border border-slate-800">
+        <button id="modeStudyBtn" onclick="switchAppMode('study')" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-sky-600 text-white shadow-md shadow-sky-900/50">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          <span>Dissection &amp; Study Lab</span>
+        </button>
+        <button id="modeExamBtn" onclick="switchAppMode('exam')" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white">
+          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          <span>Cadaver Lab Practical Exam</span>
+          <span class="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-400/30 rounded text-[10px] font-mono">TAG QUIZ</span>
+        </button>
+      </div>
+
+      <!-- Quick Priority Jump Buttons & Progress -->
+      <div class="flex items-center gap-2">
+        <button onclick="startFeaturedUserExamples()" title="Jump straight to the tagged Latissimus dorsi & Trapezius innervation stations" class="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+          <span>Test Featured Tags (Lat. Dorsi &amp; Trapezius)</span>
+        </button>
+        <div class="hidden xl:flex items-center gap-2 bg-lab-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+          <span class="text-slate-400">Studied:</span>
+          <span id="studiedCounterBadge" class="font-mono font-bold text-emerald-400">1 / 20</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-[1800px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 p-3 sm:p-4">
+
+    <!-- LEFT COLUMN: Structure Checklist & Dissection Filter (3 cols on lg) -->
+    <aside id="leftSidebarPanel" class="lg:col-span-3 flex flex-col bg-lab-900 rounded-2xl border border-slate-800/90 overflow-hidden shadow-xl max-h-[88vh]">
+      <!-- Search & Category Filter Header -->
+      <div class="p-3.5 border-b border-slate-800 space-y-2.5 bg-lab-950/50">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h11" />
+            </svg>
+            Required Structure List (20)
+          </h2>
+          <button onclick="markAllStudied()" class="text-[11px] text-sky-400 hover:text-sky-300 underline font-medium">Check All</button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative">
+          <input id="structureSearchInput" type="text" oninput="renderStructureChecklist()" placeholder="Search muscle, nerve, vessel, C2, CN XI..." class="w-full bg-lab-900 text-xs text-slate-100 placeholder-slate-500 rounded-xl pl-8 pr-3 py-2 border border-slate-700/80 focus:outline-none focus:border-sky-500" />
+          <svg class="w-4 h-4 text-slate-500 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        <!-- Category Pills -->
+        <div class="flex flex-wrap gap-1 pt-0.5" id="categoryFilterBar">
+          <button onclick="setCategoryFilter('all')" data-cat="all" class="cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-sky-600 text-white">All (20)</button>
+          <button onclick="setCategoryFilter('Muscle')" data-cat="Muscle" class="cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Muscles (13)</button>
+          <button onclick="setCategoryFilter('Vessel')" data-cat="Vessel" class="cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Vessels (2)</button>
+          <button onclick="setCategoryFilter('Nerve')" data-cat="Nerve" class="cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Nerves (3)</button>
+          <button onclick="setCategoryFilter('Clinical Space')" data-cat="Clinical Space" class="cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Spaces (1)</button>
+          <button onclick="setCategoryFilter('Other')" data-cat="Other" class="cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Other (1)</button>
+        </div>
+      </div>
+
+      <!-- Scrollable Checklist -->
+      <div id="structureListContainer" class="flex-1 overflow-y-auto p-2.5 space-y-1.5">
+        <!-- Populated dynamically by JS -->
+      </div>
+
+      <!-- Bottom Quick Mnemonic Footer -->
+      <div class="p-3 bg-lab-950/90 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
+        <div class="flex items-center justify-between font-semibold text-slate-300">
+          <span>Erector Spinae Mnemonic (Lat → Med):</span>
+          <span class="font-mono text-amber-400">"I Love Spaghetti"</span>
+        </div>
+        <p class="text-[10px] text-slate-400 leading-relaxed">
+          <strong class="text-slate-200">I</strong>liocostalis (Lateral) • <strong class="text-slate-200">L</strong>ongissimus (Middle) • <strong class="text-slate-200">S</strong>pinalis (Medial)
+        </p>
+      </div>
+    </aside>
+
+    <!-- CENTER COLUMN: Interactive Multi-Layer Cadaver Prosection SVG (5 cols on lg) -->
+    <section class="lg:col-span-5 flex flex-col bg-lab-900 rounded-2xl border border-slate-800/90 overflow-hidden shadow-2xl relative">
+      <!-- Dissection Depth Layer Controls Header -->
+      <div class="p-3 bg-lab-950/80 border-b border-slate-800 space-y-2.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Dissection Depth (Peel Layers):</span>
+            <span id="currentLayerBadge" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              Layer 1: Superficial Extrinsic
+            </span>
+          </div>
+          <!-- Toggle Pins / Labels / X-Ray Skeleton -->
+          <div class="flex items-center gap-1.5">
+            <button id="togglePinsBtn" onclick="toggleCadaverPins()" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition">
+              Pins: ON
+            </button>
+            <button id="toggleNeurovascularBtn" onclick="toggleAlwaysShowNeurovascular()" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition" title="Project nerves & arteries across layers">
+              X-Ray Nerves/Vessels: OFF
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Dissection Layer Selector Buttons -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          <button onclick="setDissectionLayer(1)" id="layerBtn1" class="layer-btn px-2.5 py-2 rounded-xl text-left border transition-all bg-rose-600/25 border-rose-500 text-white">
+            <div class="text-[10px] font-mono uppercase text-rose-300 font-bold">Layer 1 • Intact</div>
+            <div class="text-xs font-semibold truncate">Superficial Back</div>
+          </button>
+          <button onclick="setDissectionLayer(2)" id="layerBtn2" class="layer-btn px-2.5 py-2 rounded-xl text-left border transition-all bg-lab-900 border-slate-800 text-slate-300 hover:border-slate-700">
+            <div class="text-[10px] font-mono uppercase text-amber-300 font-bold">Layer 2 • Reflected</div>
+            <div class="text-xs font-semibold truncate">Rhomboids &amp; Nerves</div>
+          </button>
+          <button onclick="setDissectionLayer(3)" id="layerBtn3" class="layer-btn px-2.5 py-2 rounded-xl text-left border transition-all bg-lab-900 border-slate-800 text-slate-300 hover:border-slate-700">
+            <div class="text-[10px] font-mono uppercase text-sky-300 font-bold">Layer 3 • Intermediate</div>
+            <div class="text-xs font-semibold truncate">Splenius &amp; Erector</div>
+          </button>
+          <button onclick="setDissectionLayer(4)" id="layerBtn4" class="layer-btn px-2.5 py-2 rounded-xl text-left border transition-all bg-lab-900 border-slate-800 text-slate-300 hover:border-slate-700">
+            <div class="text-[10px] font-mono uppercase text-emerald-300 font-bold">Layer 4 • Deepest</div>
+            <div class="text-xs font-semibold truncate">Transversospinales</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hover / Active Tag Banner Over Canvas -->
+      <div class="px-3.5 py-2 bg-slate-900/90 border-b border-slate-800/80 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2 truncate">
+          <span class="w-2.5 h-2.5 rounded-full bg-sky-400 shrink-0" id="canvasStatusDot"></span>
+          <span id="canvasHoverReadout" class="font-medium text-slate-200 truncate">
+            Click any muscle, vessel, nerve, or numbered pin on the cadaver to inspect
+          </span>
+        </div>
+        <span id="scapulaProtractBadge" class="hidden px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono shrink-0">
+          Scapula Protracted (Triangle Enlarged)
+        </span>
+      </div>
+
+      <!-- Interactive SVG Cadaver Prosection Container -->
+      <div class="relative flex-1 flex items-center justify-center bg-gradient-to-b from-[#0b101b] via-[#0e1522] to-[#090d14] p-2 overflow-hidden min-h-[540px]">
+        <svg id="cadaverSvg" viewBox="0 0 900 1060" class="w-full h-full max-h-[75vh] select-none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Dissection Tray Vignette -->
+            <radialGradient id="trayBg" cx="50%" cy="48%" r="54%">
+              <stop offset="0%" stop-color="#1e293b" stop-opacity="0.45" />
+              <stop offset="75%" stop-color="#0f172a" stop-opacity="0.85" />
+              <stop offset="100%" stop-color="#070a10" stop-opacity="1" />
+            </radialGradient>
+
+            <!-- Subcutaneous / Preserved Cadaver Dermis Tone -->
+            <linearGradient id="cadaverSkinGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#5c4738" />
+              <stop offset="20%" stop-color="#7c624e" />
+              <stop offset="50%" stop-color="#8b6f58" />
+              <stop offset="80%" stop-color="#7c624e" />
+              <stop offset="100%" stop-color="#523e30" />
+            </linearGradient>
+
+            <!-- Superficial Muscle Belly Gradient (Rich Preserved Crimson-Terracotta) -->
+            <linearGradient id="muscleSuperficialGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#9f2b2b" />
+              <stop offset="45%" stop-color="#7f1d1d" />
+              <stop offset="85%" stop-color="#63171b" />
+              <stop offset="100%" stop-color="#4c1115" />
+            </linearGradient>
+
+            <!-- Reflected Flap Underside Gradient -->
+            <linearGradient id="muscleReflectedGrad" x1="0%" y1="0%" x2="100%" y2="50%">
+              <stop offset="0%" stop-color="#6b1d24" />
+              <stop offset="50%" stop-color="#8b2630" />
+              <stop offset="100%" stop-color="#541319" />
+            </linearGradient>
+
+            <!-- Deep Muscle Belly Gradient -->
+            <linearGradient id="muscleDeepGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#92272d" />
+              <stop offset="50%" stop-color="#741b21" />
+              <stop offset="100%" stop-color="#511116" />
+            </linearGradient>
+
+            <!-- Erector Spinae Column Gradients (Distinct Shading for Lateral, Middle, Medial) -->
+            <linearGradient id="iliocostalisGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#a83232" />
+              <stop offset="100%" stop-color="#7a1c1c" />
+            </linearGradient>
+            <linearGradient id="longissimusGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#8c2329" />
+              <stop offset="100%" stop-color="#64151a" />
+            </linearGradient>
+            <linearGradient id="spinalisGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#b53838" />
+              <stop offset="100%" stop-color="#7f1d22" />
+            </linearGradient>
+
+            <!-- Pearly White Aponeurosis / Thoracolumbar Fascia / Tendon -->
+            <linearGradient id="aponeurosisGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#e2e8f0" stop-opacity="0.92" />
+              <stop offset="50%" stop-color="#cbd5e1" stop-opacity="0.88" />
+              <stop offset="100%" stop-color="#94a3b8" stop-opacity="0.92" />
+            </linearGradient>
+
+            <!-- Bone / Osteology Gradient -->
+            <linearGradient id="boneGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#d6cfc2" />
+              <stop offset="50%" stop-color="#ede8dc" />
+              <stop offset="100%" stop-color="#b8b0a0" />
+            </linearGradient>
+
+            <!-- Muscle Fiber Striation Pattern (Vertical) -->
+            <pattern id="fibersVertical" width="8" height="24" patternUnits="userSpaceOnUse">
+              <path d="M2,0 L2,24 M6,0 L6,24" stroke="#3b0a0d" stroke-width="0.9" stroke-opacity="0.48" />
+              <path d="M4,0 L4,24" stroke="#fca5a5" stroke-width="0.5" stroke-opacity="0.18" />
+            </pattern>
+
+            <!-- Muscle Fiber Striation Pattern (Oblique Down-Left / Superomedial to Inferolateral) -->
+            <pattern id="fibersObliqueLeft" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+              <line x1="0" y1="0" x2="0" y2="12" stroke="#38080b" stroke-width="1.1" stroke-opacity="0.5" />
+              <line x1="6" y1="0" x2="6" y2="12" stroke="#fecaca" stroke-width="0.6" stroke-opacity="0.2" />
+            </pattern>
+
+            <!-- Muscle Fiber Striation Pattern (Oblique Down-Right) -->
+            <pattern id="fibersObliqueRight" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)">
+              <line x1="0" y1="0" x2="0" y2="12" stroke="#38080b" stroke-width="1.1" stroke-opacity="0.5" />
+              <line x1="6" y1="0" x2="6" y2="12" stroke="#fecaca" stroke-width="0.6" stroke-opacity="0.2" />
+            </pattern>
+          </defs>
+
+          <!-- Dissection Table Background -->
+          <rect x="0" y="0" width="900" height="1060" fill="url(#trayBg)" rx="18" />
+
+          <!-- Anatomical Orientation Compass (Superior / Inferior / Medial / Lateral) -->
+          <g transform="translate(46, 52)" opacity="0.75">
+            <circle cx="0" cy="0" r="24" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+            <path d="M0,-17 L4,-5 L-4,-5 Z" fill="#38bdf8" />
+            <path d="M0,17 L4,5 L-4,5 Z" fill="#64748b" />
+            <text x="0" y="-28" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="JetBrains Mono" font-weight="700">SUP</text>
+            <text x="0" y="37" text-anchor="middle" fill="#64748b" font-size="10" font-family="JetBrains Mono">INF</text>
+            <text x="-34" y="4" text-anchor="middle" fill="#64748b" font-size="10" font-family="JetBrains Mono">L</text>
+            <text x="34" y="4" text-anchor="middle" fill="#64748b" font-size="10" font-family="JetBrains Mono">R</text>
+          </g>
+
+          <!-- ========================================================================= -->
+          <!-- BASE ANATOMICAL SILHOUETTE & OSTEOLOGICAL SKELETON (Always present under muscles) -->
+          <!-- ========================================================================= -->
+          <g id="cadaverBodyOutline">
+            <!-- Posterior Head (Occiput), Neck, Shoulders, Thorax, Lumbar & Iliac Silhouette -->
+            <path d="M365,45
+                     C365,15 535,15 535,45
+                     C548,78 542,118 525,148
+                     C520,175 524,205 545,222
+                     C615,242 715,255 768,295
+                     C795,320 805,375 795,455
+                     C770,465 738,445 722,425
+                     C712,515 692,625 668,725
+                     C652,795 655,875 665,955
+                     L235,955
+                     C245,875 248,795 232,725
+                     C208,625 188,515 178,425
+                     C162,445 130,465 105,455
+                     C95,375 105,320 132,295
+                     C185,255 285,242 355,222
+                     C376,205 380,175 375,148
+                     C358,118 352,78 365,45 Z"
+                  fill="url(#cadaverSkinGrad)" stroke="#3e2f25" stroke-width="3" />
+
+            <!-- Dissected Skin Window Border (Cutaneous Reflection Line) -->
+            <path d="M378,72
+                     L522,72
+                     L535,215
+                     L735,295
+                     L702,520
+                     L648,750
+                     L642,930
+                     L258,930
+                     L252,750
+                     L198,520
+                     L165,295
+                     L365,215 Z"
+                  fill="#2a1215" stroke="#cbb69e" stroke-width="3.5" stroke-dasharray="12,3" />
+
+            <!-- Occipital Bone & Superior Nuchal Line -->
+            <path d="M380,72 Q450,55 520,72 L516,120 Q450,132 384,120 Z" fill="url(#boneGrad)" opacity="0.82" stroke="#8c8270" stroke-width="1.5" />
+            <!-- External Occipital Protuberance (Inion) -->
+            <ellipse cx="450" cy="112" rx="14" ry="7" fill="#ede8dc" stroke="#645c4e" stroke-width="1.5" />
+            <text x="450" y="96" text-anchor="middle" fill="#645c4e" font-size="9" font-family="JetBrains Mono" font-weight="600">OCCIPUT (INION)</text>
+
+            <!-- Posterior Rib Cage (Ribs 1 to 12) & Intercostal Spaces -->
+            <g id="ribCageGroup" opacity="0.88">
+              <!-- Left Ribs (1-12) -->
+              <g fill="none" stroke="url(#boneGrad)" stroke-linecap="round">
+                <path d="M442,248 Q370,242 320,268" stroke-width="7" />
+                <path d="M442,278 Q350,272 282,308" stroke-width="7.5" />
+                <path d="M442,310 Q340,305 262,348" stroke-width="8" />
+                <path d="M442,344 Q330,340 248,388" stroke-width="8.5" />
+                <path d="M442,378 Q325,375 240,428" stroke-width="9" />
+                <!-- 6th & 7th Ribs (Floor of Triangle of Auscultation on Left & Right!) -->
+                <path d="M442,414 Q322,412 235,468" stroke-width="9.5" stroke="#e2d9c8" />
+                <path d="M442,450 Q320,450 232,508" stroke-width="9.5" stroke="#e2d9c8" />
+                <path d="M442,486 Q322,488 238,546" stroke-width="9" />
+                <path d="M442,522 Q328,526 248,582" stroke-width="8.5" />
+                <path d="M442,558 Q336,564 262,616" stroke-width="8" />
+                <path d="M442,594 Q355,602 292,642" stroke-width="7" />
+                <path d="M442,628 Q375,636 325,668" stroke-width="6.5" />
+              </g>
+              <!-- Right Ribs (1-12) -->
+              <g fill="none" stroke="url(#boneGrad)" stroke-linecap="round">
+                <path d="M458,248 Q530,242 580,268" stroke-width="7" />
+                <path d="M458,278 Q550,272 618,308" stroke-width="7.5" />
+                <path d="M458,310 Q560,305 638,348" stroke-width="8" />
+                <path d="M458,344 Q570,340 652,388" stroke-width="8.5" />
+                <path d="M458,378 Q575,375 660,428" stroke-width="9" />
+                <path d="M458,414 Q578,412 665,468" stroke-width="9.5" stroke="#e2d9c8" />
+                <path d="M458,450 Q580,450 668,508" stroke-width="9.5" stroke="#e2d9c8" />
+                <path d="M458,486 Q578,488 662,546" stroke-width="9" />
+                <path d="M458,522 Q572,526 652,582" stroke-width="8.5" />
+                <path d="M458,558 Q564,564 638,616" stroke-width="8" />
+                <path d="M458,594 Q545,602 608,642" stroke-width="7" />
+                <path d="M458,628 Q525,636 575,668" stroke-width="6.5" />
+              </g>
+              <!-- Rib Labels for 6th & 7th Ribs (Visible in Triangle of Auscultation Floor) -->
+              <text x="295" y="446" fill="#cbd5e1" font-size="9" font-family="JetBrains Mono" opacity="0.85">Rib 6</text>
+              <text x="295" y="482" fill="#cbd5e1" font-size="9" font-family="JetBrains Mono" opacity="0.85">Rib 7</text>
+            </g>
+
+            <!-- Iliac Crests & Sacrum Base -->
+            <path d="M258,835 Q335,785 415,825 L450,835 L485,825 Q565,785 642,835 L635,930 L265,930 Z"
+                  fill="url(#boneGrad)" opacity="0.75" stroke="#948977" stroke-width="2" />
+
+            <!-- Vertebral Column (Spinous & Transverse Processes C1–L5) -->
+            <g id="vertebralColumnGroup">
+              <rect x="438" y="122" width="24" height="780" fill="#cfc7b8" stroke="#7d7362" stroke-width="1.5" rx="6" />
+              <!-- Spinous Process Tubercles -->
+              <g fill="#ede8dc" stroke="#645b4c" stroke-width="1.2">
+                <!-- Cervical C2-C7 (C7 is Vertebra Prominens at y=225) -->
+                <circle cx="450" cy="140" r="4.5" />
+                <circle cx="450" cy="156" r="4.5" />
+                <circle cx="450" cy="172" r="4.5" />
+                <circle cx="450" cy="188" r="4.5" />
+                <circle cx="450" cy="205" r="5" />
+                <circle cx="450" cy="225" r="7" fill="#fef3c7" stroke="#b45309" stroke-width="1.8" />
+                <!-- Thoracic T1-T12 -->
+                <circle cx="450" cy="252" r="5.5" />
+                <circle cx="450" cy="282" r="5.5" />
+                <circle cx="450" cy="314" r="5.5" />
+                <circle cx="450" cy="348" r="5.5" />
+                <circle cx="450" cy="382" r="5.5" />
+                <circle cx="450" cy="418" r="5.5" />
+                <circle cx="450" cy="454" r="5.5" />
+                <circle cx="450" cy="490" r="5.5" />
+                <circle cx="450" cy="526" r="5.5" />
+                <circle cx="450" cy="562" r="5.5" />
+                <circle cx="450" cy="598" r="5.5" />
+                <circle cx="450" cy="634" r="5.5" />
+                <!-- Lumbar L1-L5 -->
+                <rect x="443" y="666" width="14" height="18" rx="3" />
+                <rect x="443" y="704" width="14" height="18" rx="3" />
+                <rect x="443" y="742" width="14" height="18" rx="3" />
+                <rect x="443" y="780" width="14" height="18" rx="3" />
+                <rect x="443" y="818" width="14" height="18" rx="3" />
+              </g>
+              <text x="470" y="229" fill="#fde68a" font-size="9.5" font-family="JetBrains Mono" font-weight="700">C7</text>
+              <text x="468" y="638" fill="#cbd5e1" font-size="9" font-family="JetBrains Mono">T12</text>
+            </g>
+
+            <!-- Left & Right Scapulae (With Medial Border, Spine of Scapula, Inferior Angle) -->
+            <g id="leftScapulaGroup" class="scapula-normal">
+              <!-- Left Scapular Blade -->
+              <path d="M312,265
+                       L188,288
+                       L195,335
+                       L245,455
+                       Q272,475 292,452
+                       L312,340 Z"
+                    fill="url(#boneGrad)" stroke="#7c7263" stroke-width="2.5" opacity="0.95" />
+              <!-- Spine of Left Scapula & Acromion -->
+              <path d="M312,315 Q240,300 175,282 L168,298 Q240,316 312,328 Z"
+                    fill="#f1ece1" stroke="#645b4c" stroke-width="2" />
+              <text x="242" y="313" fill="#473f33" font-size="8.5" font-family="JetBrains Mono" font-weight="700" transform="rotate(-11 242 313)">SPINE OF SCAPULA</text>
+              <!-- Medial (Vertebral) Border Highlight for Triangle of Auscultation -->
+              <path id="scapulaMedialBorderLine" d="M312,265 L312,340 L292,452" fill="none" stroke="#94a3b8" stroke-width="3" stroke-dasharray="3,2" />
+            </g>
+
+            <g id="rightScapulaGroup">
+              <!-- Right Scapular Blade -->
+              <path d="M588,265
+                       L712,288
+                       L705,335
+                       L655,455
+                       Q628,475 608,452
+                       L588,340 Z"
+                    fill="url(#boneGrad)" stroke="#7c7263" stroke-width="2.5" opacity="0.95" />
+              <!-- Spine of Right Scapula & Acromion -->
+              <path d="M588,315 Q660,300 725,282 L732,298 Q660,316 588,328 Z"
+                    fill="#f1ece1" stroke="#645b4c" stroke-width="2" />
+            </g>
+          </g>
+
+          <!-- ========================================================================= -->
+          <!-- LAYER 4: DEEPEST INTRINSIC (TRANSVERSOSPINALES: SEMISPINALIS & MULTIFIDUS) -->
+          <!-- ========================================================================= -->
+          <g id="layer4Group" class="dissection-layer">
+            <!-- 13. SEMISPINALIS (Capitis, Cervicis, Thoracis — spans 4-6 segments) -->
+            <g id="svg-semispinalis" class="cadaver-structure" onclick="selectStructure('semispinalis')" onmouseenter="hoverStructure('semispinalis')" onmouseleave="clearHoverStructure()">
+              <!-- Left & Right Semispinalis Capitis & Thoracis/Cervicis -->
+              <path d="M392,115
+                       Q420,108 442,118
+                       L442,465
+                       L396,445
+                       Q386,280 392,115 Z"
+                    fill="url(#muscleDeepGrad)" stroke="#450a0a" stroke-width="2" />
+              <path d="M392,115 Q420,108 442,118 L442,465 L396,445 Q386,280 392,115 Z" fill="url(#fibersVertical)" />
+
+              <path d="M508,115
+                       Q480,108 458,118
+                       L458,465
+                       L504,445
+                       Q514,280 508,115 Z"
+                    fill="url(#muscleDeepGrad)" stroke="#450a0a" stroke-width="2" />
+              <path d="M508,115 Q480,108 458,118 L458,465 L504,445 Q514,280 508,115 Z" fill="url(#fibersVertical)" />
+              <!-- Tendinous inscriptions characteristic of Semispinalis capitis -->
+              <path d="M392,168 L442,172 M458,172 L508,168 M394,225 L442,230 M458,230 L506,225" stroke="#cbd5e1" stroke-width="1.8" opacity="0.65" />
+            </g>
+
+            <!-- 12. MULTIFIDUS (Deep oblique fascicles spanning 2-4 segments, thickest in lumbar region) -->
+            <g id="svg-multifidus" class="cadaver-structure" onclick="selectStructure('multifidus')" onmouseenter="hoverStructure('multifidus')" onmouseleave="clearHoverStructure()">
+              <!-- Left Multifidus (Cervical to Sacral, prominent in lumbosacral) -->
+              <path d="M442,380
+                       L395,435
+                       L372,665
+                       L365,865
+                       L442,895 Z"
+                    fill="#881b22" stroke="#3f0c11" stroke-width="2" />
+              <path d="M442,380 L395,435 L372,665 L365,865 L442,895 Z" fill="url(#fibersObliqueRight)" />
+              <!-- Right Multifidus -->
+              <path d="M458,380
+                       L505,435
+                       L528,665
+                       L535,865
+                       L458,895 Z"
+                    fill="#881b22" stroke="#3f0c11" stroke-width="2" />
+              <path d="M458,380 L505,435 L528,665 L535,865 L458,895 Z" fill="url(#fibersObliqueLeft)" />
+              <!-- Distinct oblique fascicle lines showing spinous insertion -->
+              <g stroke="#f8fafc" stroke-width="1" opacity="0.38">
+                <line x1="382" y1="560" x2="442" y2="510" />
+                <line x1="378" y1="620" x2="442" y2="565" />
+                <line x1="374" y1="680" x2="442" y2="625" />
+                <line x1="370" y1="740" x2="442" y2="685" />
+                <line x1="368" y1="805" x2="442" y2="745" />
+                <line x1="368" y1="860" x2="442" y2="805" />
+                <line x1="518" y1="560" x2="458" y2="510" />
+                <line x1="522" y1="620" x2="458" y2="565" />
+                <line x1="526" y1="680" x2="458" y2="625" />
+                <line x1="530" y1="740" x2="458" y2="685" />
+                <line x1="532" y1="805" x2="458" y2="745" />
+                <line x1="532" y1="860" x2="458" y2="805" />
+              </g>
+            </g>
+          </g>
+
+          <!-- ========================================================================= -->
+          <!-- LAYER 3: INTERMEDIATE INTRINSIC (ERECTOR SPINAE & SPLENIUS)               -->
+          <!-- ========================================================================= -->
+          <g id="layer3Group" class="dissection-layer">
+            <!-- Common Erector Spinae Tendon Origin (Sacrum & Iliac Crest) -->
+            <path d="M335,775 L442,745 L458,745 L565,775 L540,895 L360,895 Z" fill="url(#aponeurosisGrad)" opacity="0.7" />
+
+            <!-- 11. SPINALIS (Medial column of Erector Spinae — "Spaghetti") -->
+            <g id="svg-spinalis" class="cadaver-structure" onclick="selectStructure('spinalis')" onmouseenter="hoverStructure('spinalis')" onmouseleave="clearHoverStructure()">
+              <!-- Left Spinalis -->
+              <path d="M416,245
+                       L442,235
+                       L442,685
+                       L416,665
+                       Q408,455 416,245 Z"
+                    fill="url(#spinalisGrad)" stroke="#3f0b0e" stroke-width="2" />
+              <path d="M416,245 L442,235 L442,685 L416,665 Q408,455 416,245 Z" fill="url(#fibersVertical)" />
+              <!-- Right Spinalis -->
+              <path d="M484,245
+                       L458,235
+                       L458,685
+                       L484,665
+                       Q492,455 484,245 Z"
+                    fill="url(#spinalisGrad)" stroke="#3f0b0e" stroke-width="2" />
+              <path d="M484,245 L458,235 L458,685 L484,665 Q492,455 484,245 Z" fill="url(#fibersVertical)" />
+            </g>
+
+            <!-- 10. LONGISSIMUS (Intermediate column of Erector Spinae — "Love") -->
+            <g id="svg-longissimus" class="cadaver-structure" onclick="selectStructure('longissimus')" onmouseenter="hoverStructure('longissimus')" onmouseleave="clearHoverStructure()">
+              <!-- Left Longissimus (Capitis, Cervicis, Thoracis) -->
+              <path d="M372,145
+                       L395,140
+                       L415,245
+                       L415,745
+                       L368,785
+                       Q358,465 372,145 Z"
+                    fill="url(#longissimusGrad)" stroke="#3b0a0d" stroke-width="2" />
+              <path d="M372,145 L395,140 L415,245 L415,745 L368,785 Q358,465 372,145 Z" fill="url(#fibersVertical)" />
+              <!-- Right Longissimus -->
+              <path d="M528,145
+                       L505,140
+                       L485,245
+                       L485,745
+                       L532,785
+                       Q542,465 528,145 Z"
+                    fill="url(#longissimusGrad)" stroke="#3b0a0d" stroke-width="2" />
+              <path d="M528,145 L505,140 L485,245 L485,745 L532,785 Q542,465 528,145 Z" fill="url(#fibersVertical)" />
+            </g>
+
+            <!-- 9. ILIOCOSTALIS (Lateral column of Erector Spinae — "I") -->
+            <g id="svg-iliocostalis" class="cadaver-structure" onclick="selectStructure('iliocostalis')" onmouseenter="hoverStructure('iliocostalis')" onmouseleave="clearHoverStructure()">
+              <!-- Left Iliocostalis (Cervicis, Thoracis, Lumborum inserting on angles of ribs) -->
+              <path d="M332,225
+                       L368,218
+                       L368,785
+                       L312,815
+                       Q292,520 332,225 Z"
+                    fill="url(#iliocostalisGrad)" stroke="#3b0a0d" stroke-width="2" />
+              <path d="M332,225 L368,218 L368,785 L312,815 Q292,520 332,225 Z" fill="url(#fibersVertical)" />
+              <!-- Costal tendon slips on ribs -->
+              <path d="M318,310 L295,290 M312,375 L288,350 M308,440 L282,415 M308,505 L282,480 M310,570 L286,545" stroke="#e2e8f0" stroke-width="2" opacity="0.75" />
+
+              <!-- Right Iliocostalis -->
+              <path d="M568,225
+                       L532,218
+                       L532,785
+                       L588,815
+                       Q608,520 568,225 Z"
+                    fill="url(#iliocostalisGrad)" stroke="#3b0a0d" stroke-width="2" />
+              <path d="M568,225 L532,218 L532,785 L588,815 Q608,520 568,225 Z" fill="url(#fibersVertical)" />
+              <path d="M582,310 L605,290 M588,375 L612,350 M592,440 L618,415 M592,505 L618,480 M590,570 L614,545" stroke="#e2e8f0" stroke-width="2" opacity="0.75" />
+            </g>
+
+            <!-- 8. SPLENIUS (Splenius capitis & Splenius cervicis — runs superolaterally from midline) -->
+            <g id="svg-splenius" class="cadaver-structure" onclick="selectStructure('splenius')" onmouseenter="hoverStructure('splenius')" onmouseleave="clearHoverStructure()">
+              <!-- Left Splenius -->
+              <path d="M442,155
+                       L375,112
+                       L362,165
+                       L385,255
+                       L442,325 Z"
+                    fill="#9e2a2b" stroke="#450a0a" stroke-width="2.2" />
+              <path d="M442,155 L375,112 L362,165 L385,255 L442,325 Z" fill="url(#fibersObliqueLeft)" />
+              <!-- Right Splenius -->
+              <path d="M458,155
+                       L525,112
+                       L538,165
+                       L515,255
+                       L458,325 Z"
+                    fill="#9e2a2b" stroke="#450a0a" stroke-width="2.2" />
+              <path d="M458,155 L525,112 L538,165 L515,255 L458,325 Z" fill="url(#fibersObliqueRight)" />
+            </g>
+          </g>
+
+          <!-- ========================================================================= -->
+          <!-- LAYER 2: SERRATUS POSTERIOR, LEVATOR SCAPULAE, RHOMBOIDS & REFLECTED FLAPS-->
+          <!-- ========================================================================= -->
+          <g id="layer2Group" class="dissection-layer">
+            <!-- 6. SERRATUS POSTERIOR SUPERIOR (Deep to Rhomboids, elevates ribs 2-5) -->
+            <g id="svg-serratus-posterior-superior" class="cadaver-structure" onclick="selectStructure('serratus_posterior_superior')" onmouseenter="hoverStructure('serratus_posterior_superior')" onmouseleave="clearHoverStructure()">
+              <!-- Right Side Exposed Serratus Posterior Superior (and Left deep to Rhomboids) -->
+              <path d="M458,205
+                       L515,215
+                       L585,265
+                       L572,338
+                       L495,305
+                       L458,295 Z"
+                    fill="#99282c" stroke="#450a0a" stroke-width="2" />
+              <path d="M458,205 L498,212 L498,302 L458,295 Z" fill="url(#aponeurosisGrad)" opacity="0.8" />
+              <path d="M495,212 L585,265 L572,338 L495,305 Z" fill="url(#fibersObliqueRight)" />
+              <!-- Serrated digitations onto ribs 2-5 -->
+              <path d="M578,265 L595,275 M582,288 L598,298 M578,312 L595,322 M572,335 L588,344" stroke="#f1f5f9" stroke-width="2.2" />
+            </g>
+
+            <!-- 7. SERRATUS POSTERIOR INFERIOR (T11-L2 to lower 4 ribs 9-12, depresses ribs) -->
+            <g id="svg-serratus-posterior-inferior" class="cadaver-structure" onclick="selectStructure('serratus_posterior_inferior')" onmouseenter="hoverStructure('serratus_posterior_inferior')" onmouseleave="clearHoverStructure()">
+              <!-- Left Serratus Posterior Inferior -->
+              <path d="M442,565
+                       L395,555
+                       L275,515
+                       L262,598
+                       L385,642
+                       L442,665 Z"
+                    fill="#9b292d" stroke="#450a0a" stroke-width="2" />
+              <path d="M442,565 L392,555 L385,642 L442,665 Z" fill="url(#aponeurosisGrad)" opacity="0.82" />
+              <path d="M395,555 L275,515 L262,598 L385,642 Z" fill="url(#fibersObliqueRight)" />
+              <!-- Right Serratus Posterior Inferior -->
+              <path d="M458,565
+                       L505,555
+                       L625,515
+                       L638,598
+                       L515,642
+                       L458,665 Z"
+                    fill="#9b292d" stroke="#450a0a" stroke-width="2" />
+              <path d="M458,565 L508,555 L515,642 L458,665 Z" fill="url(#aponeurosisGrad)" opacity="0.82" />
+              <path d="M505,555 L625,515 L638,598 L515,642 Z" fill="url(#fibersObliqueLeft)" />
+            </g>
+
+            <!-- 3. LEVATOR SCAPULAE (C1-C4 transverse processes to superior angle of scapula) -->
+            <g id="svg-levator-scapulae" class="cadaver-structure" onclick="selectStructure('levator_scapulae')" onmouseenter="hoverStructure('levator_scapulae')" onmouseleave="clearHoverStructure()">
+              <!-- Left Levator Scapulae -->
+              <path d="M368,142
+                       L392,150
+                       L335,275
+                       L304,268
+                       Q338,200 368,142 Z"
+                    fill="#a82d31" stroke="#450a0a" stroke-width="2.2" />
+              <path d="M368,142 L392,150 L335,275 L304,268 Q338,200 368,142 Z" fill="url(#fibersObliqueLeft)" />
+              <!-- Right Levator Scapulae -->
+              <path d="M532,142
+                       L508,150
+                       L565,275
+                       L596,268
+                       Q562,200 532,142 Z"
+                    fill="#a82d31" stroke="#450a0a" stroke-width="2.2" />
+              <path d="M532,142 L508,150 L565,275 L596,268 Q562,200 532,142 Z" fill="url(#fibersObliqueRight)" />
+            </g>
+
+            <!-- 5. RHOMBOID MINOR (Nuchal ligament & C7-T1 to medial border of scapula at root of spine) -->
+            <g id="svg-rhomboid-minor" class="cadaver-structure" onclick="selectStructure('rhomboid_minor')" onmouseenter="hoverStructure('rhomboid_minor')" onmouseleave="clearHoverStructure()">
+              <!-- Left Rhomboid Minor (Intact in Layer 2) -->
+              <path d="M442,218
+                       L312,282
+                       L312,315
+                       L442,252 Z"
+                    fill="#b03034" stroke="#450a0a" stroke-width="2.2" />
+              <path d="M442,218 L312,282 L312,315 L442,252 Z" fill="url(#fibersObliqueLeft)" />
+              <!-- Tendinous origin slip at C7-T1 -->
+              <path d="M442,218 L426,226 L426,260 L442,252 Z" fill="url(#aponeurosisGrad)" opacity="0.8" />
+            </g>
+
+            <!-- 4. RHOMBOID MAJOR (T2-T5 spinous processes to medial border of scapula inferior to spine) -->
+            <g id="svg-rhomboid-major" class="cadaver-structure" onclick="selectStructure('rhomboid_major')" onmouseenter="hoverStructure('rhomboid_major')" onmouseleave="clearHoverStructure()">
+              <!-- Left Rhomboid Major -->
+              <path d="M442,256
+                       L312,318
+                       L292,448
+                       L442,375 Z"
+                    fill="#8f2226" stroke="#3f080b" stroke-width="2.2" />
+              <path d="M442,256 L312,318 L292,448 L442,375 Z" fill="url(#fibersObliqueLeft)" />
+              <!-- Tendinous origin slip at T2-T5 -->
+              <path d="M442,256 L428,263 L428,382 L442,375 Z" fill="url(#aponeurosisGrad)" opacity="0.8" />
+
+              <!-- Right Rhomboid Flap (Cut & Reflected Laterally in Layer 2 to expose Dorsal Scapular Nerve & Artery!) -->
+              <path d="M588,285
+                       L648,275
+                       L635,435
+                       L588,445 Z"
+                    fill="url(#muscleReflectedGrad)" stroke="#450a0a" stroke-width="2" stroke-dasharray="4,2" opacity="0.9" />
+            </g>
+
+            <!-- Reflected Left Trapezius Muscle Flap (Pinned laterally in Layer 2 to show CN XI & Superficial Transverse Cervical A. on its deep surface!) -->
+            <g id="reflectedTrapeziusFlap">
+              <path d="M295,185
+                       C215,175 145,215 125,275
+                       C115,335 145,405 215,415
+                       L265,335
+                       Z"
+                    fill="url(#muscleReflectedGrad)" stroke="#fca5a5" stroke-width="1.8" opacity="0.94" />
+              <path d="M295,185 C215,175 145,215 125,275 C115,335 145,405 215,415 L265,335 Z" fill="url(#fibersObliqueLeft)" opacity="0.6" />
+              <!-- Metal Dissection Retractor Pins holding reflected Trapezius flap -->
+              <circle cx="142" cy="268" r="5" fill="#94a3b8" stroke="#f8fafc" stroke-width="1.5" />
+              <line x1="142" y1="268" x2="122" y2="252" stroke="#cbd5e1" stroke-width="2" />
+              <circle cx="155" cy="365" r="5" fill="#94a3b8" stroke="#f8fafc" stroke-width="1.5" />
+              <line x1="155" y1="365" x2="135" y2="380" stroke="#cbd5e1" stroke-width="2" />
+              <text x="195" y="242" text-anchor="middle" fill="#fecdd3" font-size="9" font-family="JetBrains Mono" font-weight="600">REFLECTED TRAPEZIUS</text>
+              <text x="195" y="253" text-anchor="middle" fill="#fda4af" font-size="8" font-family="JetBrains Mono">(Deep Surface Exposed)</text>
+            </g>
+          </g>
+
+          <!-- ========================================================================= -->
+          <!-- LAYER 1: SUPERFICIAL EXTRINSIC LAYER (TRAPEZIUS, LATISSIMUS DORSI, SPACE) -->
+          <!-- ========================================================================= -->
+          <g id="layer1Group" class="dissection-layer">
+            <!-- Thoracolumbar Fascia (Diamond Pearly White Aponeurosis) -->
+            <path d="M450,515
+                     L565,675
+                     L525,885
+                     L450,925
+                     L375,885
+                     L335,675 Z"
+                  fill="url(#aponeurosisGrad)" stroke="#cbd5e1" stroke-width="1.5" />
+
+            <!-- 19. TRIANGLE OF AUSCULTATION (Clinical Space — Left & Right) -->
+            <g id="svg-triangle-of-auscultation" class="cadaver-structure" onclick="selectStructure('triangle_of_auscultation')" onmouseenter="hoverStructure('triangle_of_auscultation')" onmouseleave="clearHoverStructure()">
+              <!-- Left Triangle of Auscultation -->
+              <!-- Bounded Superior/Medially by Trapezius, Inferiorly by Latissimus dorsi, Laterally by Medial border of Scapula / Rhomboid major -->
+              <polygon id="auscultationPolyLeft" points="358,412 292,452 276,385"
+                       fill="rgba(56, 189, 248, 0.28)" stroke="#38bdf8" stroke-width="2.8" stroke-dasharray="5,3" />
+              <!-- Right Triangle of Auscultation -->
+              <polygon id="auscultationPolyRight" points="542,412 608,452 624,385"
+                       fill="rgba(56, 189, 248, 0.22)" stroke="#38bdf8" stroke-width="2.2" stroke-dasharray="5,3" />
+
+              <!-- Interactive Border Overlay Highlights (Activated when inspecting Triangle of Auscultation borders) -->
+              <g id="auscultationBorderOverlays" class="hidden">
+                <!-- Superior/Medial Border: Inferior border of Trapezius -->
+                <line x1="276" y1="385" x2="358" y2="412" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" />
+                <!-- Inferior Border: Superior border of Latissimus Dorsi -->
+                <line x1="292" y1="452" x2="358" y2="412" stroke="#c084fc" stroke-width="6" stroke-linecap="round" />
+                <!-- Lateral Border: Medial border of Scapula -->
+                <line x1="276" y1="385" x2="292" y2="452" stroke="#4ade80" stroke-width="6" stroke-linecap="round" />
+              </g>
+            </g>
+
+            <!-- 2. LATISSIMUS DORSI (T7-L5 spinous processes, thoracolumbar fascia, iliac crest, lower 3-4 ribs to intertubercular sulcus of humerus) -->
+            <g id="svg-latissimus-dorsi" class="cadaver-structure" onclick="selectStructure('latissimus_dorsi')" onmouseenter="hoverStructure('latissimus_dorsi')" onmouseleave="clearHoverStructure()">
+              <!-- Left Latissimus Dorsi Belly -->
+              <path d="M442,418
+                       L358,412
+                       L285,452
+                       L188,365
+                       L195,515
+                       L248,745
+                       L345,765
+                       L385,645
+                       L442,525 Z"
+                    fill="url(#muscleSuperficialGrad)" stroke="#3b070a" stroke-width="2.5" />
+              <path d="M442,418 L358,412 L285,452 L188,365 L195,515 L248,745 L345,765 L385,645 L442,525 Z"
+                    fill="url(#fibersObliqueRight)" />
+
+              <!-- Right Latissimus Dorsi Belly -->
+              <path d="M458,418
+                       L542,412
+                       L615,452
+                       L712,365
+                       L705,515
+                       L652,745
+                       L555,765
+                       L515,645
+                       L458,525 Z"
+                    fill="url(#muscleSuperficialGrad)" stroke="#3b070a" stroke-width="2.5" />
+              <path d="M458,418 L542,412 L615,452 L712,365 L705,515 L652,745 L555,765 L515,645 L458,525 Z"
+                    fill="url(#fibersObliqueLeft)" />
+
+              <!-- Curved fascicle contour lines converging toward axilla / humerus -->
+              <g fill="none" stroke="#fca5a5" stroke-width="1" opacity="0.24">
+                <path d="M365,680 Q290,560 194,415" />
+                <path d="M385,610 Q300,505 192,390" />
+                <path d="M415,510 Q320,460 210,378" />
+                <path d="M535,680 Q610,560 706,415" />
+                <path d="M515,610 Q600,505 708,390" />
+                <path d="M485,510 Q580,460 690,378" />
+              </g>
+            </g>
+
+            <!-- 1. TRAPEZIUS (Descending, Middle, and Ascending fibers; Occiput, Nuchal Ligament, C7-T12 to Clavicle, Acromion, Spine of Scapula) -->
+            <g id="svg-trapezius" class="cadaver-structure" onclick="selectStructure('trapezius')" onmouseenter="hoverStructure('trapezius')" onmouseleave="clearHoverStructure()">
+              <!-- Left Trapezius -->
+              <path d="M442,115
+                       L395,115
+                       C378,165 348,218 285,248
+                       L172,282
+                       L182,302
+                       Q255,315 308,326
+                       L358,412
+                       L442,585 Z"
+                    fill="url(#muscleSuperficialGrad)" stroke="#3b070a" stroke-width="2.5" />
+              <path d="M442,115 L395,115 C378,165 348,218 285,248 L172,282 L182,302 Q255,315 308,326 L358,412 L442,585 Z"
+                    fill="url(#fibersObliqueLeft)" />
+
+              <!-- Right Trapezius -->
+              <path d="M458,115
+                       L505,115
+                       C522,165 552,218 615,248
+                       L728,282
+                       L718,302
+                       Q645,315 592,326
+                       L542,412
+                       L458,585 Z"
+                    fill="url(#muscleSuperficialGrad)" stroke="#3b070a" stroke-width="2.5" />
+              <path d="M458,115 L505,115 C522,165 552,218 615,248 L728,282 L718,302 Q645,315 592,326 L542,412 L458,585 Z"
+                    fill="url(#fibersObliqueRight)" />
+
+              <!-- Characteristic Aponeurotic Speculum (Rhomboid Tendinous Mirror around C6-T3) -->
+              <polygon points="450,198 424,232 450,268 476,232" fill="url(#aponeurosisGrad)" opacity="0.86" />
+
+              <!-- Directional Fiber Highlight Lines (Upper descending, Middle transverse, Lower ascending) -->
+              <g fill="none" stroke="#fecaca" stroke-width="1.1" opacity="0.28">
+                <path d="M432,145 Q365,210 225,275" />
+                <path d="M428,245 Q340,275 235,295" />
+                <path d="M438,365 Q365,345 295,322" />
+                <path d="M440,485 Q385,415 312,330" />
+                <path d="M468,145 Q535,210 675,275" />
+                <path d="M472,245 Q560,275 665,295" />
+                <path d="M462,365 Q535,345 605,322" />
+                <path d="M460,485 Q515,415 588,330" />
+              </g>
+            </g>
+          </g>
+
+          <!-- ========================================================================= -->
+          <!-- NUCHAL LIGAMENT (Always visible in posterior midline of neck: Inion to C7)-->
+          <!-- ========================================================================= -->
+          <g id="svg-nuchal-ligament" class="cadaver-structure" onclick="selectStructure('nuchal_ligament')" onmouseenter="hoverStructure('nuchal_ligament')" onmouseleave="clearHoverStructure()">
+            <rect x="443" y="112" width="14" height="114" rx="5" fill="url(#aponeurosisGrad)" stroke="#f8fafc" stroke-width="2" />
+            <line x1="450" y1="115" x2="450" y2="222" stroke="#64748b" stroke-width="1.5" stroke-dasharray="3,3" />
+          </g>
+
+          <!-- ========================================================================= -->
+          <!-- NEUROVASCULAR STRUCTURES (NERVES & ARTERIES)                              -->
+          <!-- ========================================================================= -->
+          <g id="neurovascularGroup">
+            <!-- 18. GREATER OCCIPITAL NERVE / DORSAL RAMUS OF C2 SPINAL NERVE -->
+            <!-- Emerges inferior to obliquus capitis inferior, pierces semispinalis capitis and trapezius aponeurosis to supply posterior scalp -->
+            <g id="svg-greater-occipital-nerve" class="cadaver-structure" onclick="selectStructure('greater_occipital_nerve')" onmouseenter="hoverStructure('greater_occipital_nerve')" onmouseleave="clearHoverStructure()">
+              <!-- Left & Right C2 Dorsal Ramus / Greater Occipital Nerve -->
+              <path d="M432,148
+                       Q412,135 408,112
+                       Q404,88 386,65
+                       M408,112 Q422,85 426,62"
+                    fill="none" stroke="#facc15" stroke-width="4" class="nerve-path" />
+              <path d="M468,148
+                       Q488,135 492,112
+                       Q496,88 514,65
+                       M492,112 Q478,85 474,62"
+                    fill="none" stroke="#facc15" stroke-width="4" class="nerve-path" />
+              <!-- Foramen / Piercing ring through Semispinalis capitis & Trapezius -->
+              <circle cx="408" cy="116" r="5" fill="#1e293b" stroke="#facc15" stroke-width="2" />
+              <circle cx="492" cy="116" r="5" fill="#1e293b" stroke="#facc15" stroke-width="2" />
+            </g>
+
+            <!-- 14. SUPERFICIAL BRANCH OF TRANSVERSE CERVICAL ARTERY (Courses on deep surface of Trapezius accompanying CN XI) -->
+            <g id="svg-superficial-transverse-cervical-artery" class="cadaver-structure" onclick="selectStructure('superficial_transverse_cervical_artery')" onmouseenter="hoverStructure('superficial_transverse_cervical_artery')" onmouseleave="clearHoverStructure()">
+              <!-- Courses from base of neck onto deep surface of reflected Left Trapezius flap (and deep to Right Trapezius) -->
+              <path d="M352,202
+                       C308,205 255,222 212,268
+                       C188,295 178,335 186,378
+                       M212,268 L168,282
+                       M192,315 L155,335"
+                    fill="none" stroke="#ef4444" stroke-width="4" class="vessel-path" />
+              <!-- Subtle outer glow for visibility -->
+              <path d="M352,202 C308,205 255,222 212,268 C188,295 178,335 186,378"
+                    fill="none" stroke="#fca5a5" stroke-width="1.2" opacity="0.7" />
+            </g>
+
+            <!-- 17. SPINAL ACCESSORY NERVE / CN XI (Courses on deep surface of Trapezius accompanying Superficial branch of transverse cervical artery) -->
+            <g id="svg-spinal-accessory-nerve" class="cadaver-structure" onclick="selectStructure('spinal_accessory_nerve')" onmouseenter="hoverStructure('spinal_accessory_nerve')" onmouseleave="clearHoverStructure()">
+              <path d="M358,182
+                       C315,192 262,212 222,262
+                       C198,292 188,332 198,382
+                       M222,262 L176,272
+                       M202,312 L166,328"
+                    fill="none" stroke="#fde047" stroke-width="4.2" class="nerve-path" />
+            </g>
+
+            <!-- 15. DEEP BRANCH OF TRANSVERSE CERVICAL ARTERY / DORSAL SCAPULAR ARTERY (Runs deep to Levator scapulae & Rhomboids along medial border of scapula) -->
+            <g id="svg-dorsal-scapular-artery" class="cadaver-structure" onclick="selectStructure('dorsal_scapular_artery')" onmouseenter="hoverStructure('dorsal_scapular_artery')" onmouseleave="clearHoverStructure()">
+              <!-- Shown descending along medial scapular border on Right (where Rhomboids are reflected) & Left -->
+              <path d="M532,202
+                       Q568,225 576,268
+                       L578,355
+                       L594,442
+                       M576,305 L605,318
+                       M582,368 L612,382"
+                    fill="none" stroke="#dc2626" stroke-width="4.2" class="vessel-path" />
+              <path d="M532,202 Q568,225 576,268 L578,355 L594,442"
+                    fill="none" stroke="#fca5a5" stroke-width="1.2" opacity="0.75" />
+            </g>
+
+            <!-- 16. DORSAL SCAPULAR NERVE (C5 root; courses deep to Levator scapulae and Rhomboid minor & major along medial border of scapula) -->
+            <g id="svg-dorsal-scapular-nerve" class="cadaver-structure" onclick="selectStructure('dorsal_scapular_nerve')" onmouseenter="hoverStructure('dorsal_scapular_nerve')" onmouseleave="clearHoverStructure()">
+              <path d="M522,186
+                       Q558,215 566,265
+                       L568,355
+                       L584,438
+                       M566,295 L595,308
+                       M572,358 L602,372"
+                    fill="none" stroke="#facc15" stroke-width="4" class="nerve-path" />
+            </g>
+          </g>
+
+          <!-- ========================================================================= -->
+          <!-- INTERACTIVE NUMBERED DISSECTION PINS LAYER                                -->
+          <!-- ========================================================================= -->
+          <g id="cadaverPinsLayer"></g>
+
+          <!-- ========================================================================= -->
+          <!-- LAB PRACTICAL EXAM TAGGED PIN OVERLAY (Realistic Flag Pin in Exam Mode)   -->
+          <!-- ========================================================================= -->
+          <g id="examTaggedPinLayer" class="hidden"></g>
+        </svg>
+
+        <!-- Floating Bottom Legend on Canvas -->
+        <div class="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+          <div class="flex flex-wrap items-center gap-3 bg-lab-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] pointer-events-auto">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block"></span> Muscle</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> Artery</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span> Nerve</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> Clinical Space</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 inline-block"></span> Ligament/Fascia</span>
+          </div>
+          <button onclick="selectStructure('triangle_of_auscultation')" class="pointer-events-auto px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-[11px] font-semibold transition flex items-center gap-1.5">
+            <span>Inspect Triangle of Auscultation</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: Detailed Anatomical Inspector OR Lab Practical Exam Station (4 cols on lg) -->
+    <section class="lg:col-span-4 flex flex-col bg-lab-900 rounded-2xl border border-slate-800/90 overflow-hidden shadow-xl max-h-[88vh]">
+
+      <!-- =============================================================== -->
+      <!-- PANEL A: DISSECTION & STUDY LAB INSPECTOR                       -->
+      <!-- =============================================================== -->
+      <div id="studyInspectorPanel" class="flex-1 flex flex-col overflow-y-auto">
+        <!-- Structure Header Banner -->
+        <div class="p-4 bg-gradient-to-br from-lab-950 via-lab-900 to-slate-900 border-b border-slate-800 space-y-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="space-y-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span id="detailPinBadge" class="px-2 py-0.5 rounded-md font-mono text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                  PIN #1
+                </span>
+                <span id="detailCategoryBadge" class="px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-800 text-slate-300">
+                  Superficial Extrinsic Muscle
+                </span>
+                <span id="detailLayerBadge" class="px-2 py-0.5 rounded-md font-mono text-[11px] bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                  Layer 1
+                </span>
+              </div>
+              <h2 id="detailTitle" class="text-xl font-extrabold text-white tracking-tight">Trapezius</h2>
+              <p id="detailLatinSub" class="text-xs text-slate-400 italic"></p>
+            </div>
+
+            <!-- Instant Quiz Me on This Structure Button -->
+            <button onclick="quizCurrentStructureNow()" class="shrink-0 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-950/50 transition flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span>Tag Quiz This</span>
+            </button>
+          </div>
+
+          <!-- High-Yield Innervation & Blood Supply Callout Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <!-- Innervation Card -->
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono uppercase tracking-wider font-bold text-amber-300">Innervation (Lab Practical)</span>
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+              </div>
+              <p id="detailInnervation" class="text-xs sm:text-sm font-bold text-amber-100 leading-snug">
+                Spinal accessory nerve (CN XI) [motor]; C3–C4 ventral rami [proprioception]
+              </p>
+            </div>
+
+            <!-- Blood Supply / Companion Vessel Card -->
+            <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-1">
+              <div class="flex items-center justify-between">
+                <span id="detailVesselCardLabel" class="text-[10px] font-mono uppercase tracking-wider font-bold text-rose-300">Arterial Supply / Vessel</span>
+                <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+              </div>
+              <p id="detailBloodSupply" class="text-xs sm:text-sm font-semibold text-rose-100 leading-snug">
+                Superficial branch of transverse cervical artery
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Special Interactive Triangle of Auscultation Explorer (Visible when Triangle of Auscultation is active) -->
+        <div id="triangleSpecialBox" class="hidden m-4 mb-0 p-3.5 rounded-2xl bg-sky-950/40 border border-sky-500/40 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+              Interactive Triangle of Auscultation Explorer
+            </h3>
+            <button onclick="toggleScapularProtraction()" id="protractScapulaBtn" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-semibold transition">
+              Fold Arms (Protract Scapula)
+            </button>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Click any boundary below to highlight the exact anatomical structure on the cadaver:
+          </p>
+          <div class="grid grid-cols-1 gap-1.5 text-xs">
+            <button onclick="highlightTrianglePart('superior')" class="p-2 rounded-xl bg-lab-900/90 hover:bg-sky-900/40 border border-sky-500/30 text-left flex items-center justify-between transition">
+              <div>
+                <span class="font-bold text-sky-300">Superior / Medial Border:</span>
+                <span class="text-slate-200 ml-1">Inferior lateral border of <strong>Trapezius</strong></span>
+              </div>
+              <span class="text-[10px] font-mono text-sky-400">Highlight →</span>
+            </button>
+            <button onclick="highlightTrianglePart('inferior')" class="p-2 rounded-xl bg-lab-900/90 hover:bg-purple-900/40 border border-purple-500/30 text-left flex items-center justify-between transition">
+              <div>
+                <span class="font-bold text-purple-300">Inferior Border:</span>
+                <span class="text-slate-200 ml-1">Superior border of <strong>Latissimus dorsi</strong></span>
+              </div>
+              <span class="text-[10px] font-mono text-purple-400">Highlight →</span>
+            </button>
+            <button onclick="highlightTrianglePart('lateral')" class="p-2 rounded-xl bg-lab-900/90 hover:bg-emerald-900/40 border border-emerald-500/30 text-left flex items-center justify-between transition">
+              <div>
+                <span class="font-bold text-emerald-300">Lateral Border:</span>
+                <span class="text-slate-200 ml-1">Medial (vertebral) border of <strong>Scapula</strong></span>
+              </div>
+              <span class="text-[10px] font-mono text-emerald-400">Highlight →</span>
+            </button>
+            <button onclick="highlightTrianglePart('floor')" class="p-2 rounded-xl bg-lab-900/90 hover:bg-amber-900/40 border border-amber-500/30 text-left flex items-center justify-between transition">
+              <div>
+                <span class="font-bold text-amber-300">Floor of Space:</span>
+                <span class="text-slate-200 ml-1"><strong>6th &amp; 7th ribs</strong>, <strong>6th intercostal space</strong> &amp; <strong>Rhomboid major</strong></span>
+              </div>
+              <span class="text-[10px] font-mono text-amber-400">Highlight →</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Body Details: Cadaver Identification, Attachments, Actions, Clinical Pearl -->
+        <div class="p-4 space-y-3.5 text-xs sm:text-sm">
+          <!-- Cadaver Dissection Landmark ("How to identify on cadaver") -->
+          <div class="p-3.5 rounded-xl bg-lab-950/80 border border-slate-800 space-y-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              How to Identify on the Cadaver Prosection
+            </h3>
+            <p id="detailCadaverLandmark" class="text-slate-300 leading-relaxed text-xs sm:text-sm"></p>
+          </div>
+
+          <!-- Origin / Proximal Attachment & Insertion / Distal Attachment -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div class="p-3 rounded-xl bg-lab-950/60 border border-slate-800/80 space-y-1">
+              <span id="detailOriginLabel" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Origin / Proximal</span>
+              <p id="detailOrigin" class="text-xs text-slate-200 leading-relaxed"></p>
+            </div>
+            <div class="p-3 rounded-xl bg-lab-950/60 border border-slate-800/80 space-y-1">
+              <span id="detailInsertionLabel" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Insertion / Distal</span>
+              <p id="detailInsertion" class="text-xs text-slate-200 leading-relaxed"></p>
+            </div>
+          </div>
+
+          <!-- Primary Actions / Function -->
+          <div class="p-3 rounded-xl bg-lab-950/60 border border-slate-800/80 space-y-1">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Primary Actions / Function</span>
+            <p id="detailAction" class="text-xs sm:text-sm text-slate-200 leading-relaxed"></p>
+          </div>
+
+          <!-- Clinical Correlation & Exam Pearl -->
+          <div class="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/30 space-y-1">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Clinical &amp; Practical Exam Pearl
+            </span>
+            <p id="detailClinical" class="text-xs text-indigo-100/90 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <!-- Prev / Next Structure Navigation Footer -->
+        <div class="mt-auto p-3 bg-lab-950 border-t border-slate-800 flex items-center justify-between">
+          <button onclick="stepStructure(-1)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition">
+            ← Previous Structure
+          </button>
+          <span id="structureIndexIndicator" class="text-xs font-mono text-slate-400">1 of 20</span>
+          <button onclick="stepStructure(1)" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-xs font-semibold text-white transition">
+            Next Structure →
+          </button>
+        </div>
+      </div>
+
+      <!-- =============================================================== -->
+      <!-- PANEL B: CADAVER LAB PRACTICAL EXAM SIMULATOR                   -->
+      <!-- =============================================================== -->
+      <div id="examSimulatorPanel" class="hidden flex-1 flex flex-col overflow-y-auto">
+        <!-- Exam Top Controls & Scoreboard -->
+        <div class="p-4 bg-gradient-to-br from-amber-950/40 via-lab-950 to-lab-900 border-b border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-md font-mono text-xs font-bold bg-amber-500 text-slate-950">
+                STATION <span id="examStationNum">1</span> / <span id="examStationTotal">25</span>
+              </span>
+              <span id="examQuestionTypeBadge" class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                Identify Tagged Structure
+              </span>
+            </div>
+            <div class="flex items-center gap-2 font-mono text-xs">
+              <span class="text-slate-400">Score:</span>
+              <span id="examScoreDisplay" class="font-bold text-emerald-400">0 / 0 (100%)</span>
+            </div>
+          </div>
+
+          <!-- Question Filter & Input Mode Switcher -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <!-- Question Deck Filter -->
+            <div>
+              <label class="block text-[10px] font-mono uppercase text-slate-400 mb-1">Question Type Deck:</label>
+              <select id="examDeckFilter" onchange="rebuildExamDeck()" class="w-full bg-lab-950 text-xs text-slate-200 rounded-xl px-2.5 py-1.5 border border-slate-700 focus:outline-none focus:border-amber-500">
+                <option value="all">All Practical Stations (Structure + Innervation + Spaces)</option>
+                <option value="featured">Featured Priority Tags (Latissimus Dorsi &amp; Trapezius CN XI)</option>
+                <option value="identify">Identify the Tagged Structure Only (All 20)</option>
+                <option value="innervation">Identify Nerve Innervating Tagged Muscle Only</option>
+                <option value="clinical">Triangle of Auscultation &amp; Neurovascular Deep-Dive</option>
+              </select>
+            </div>
+
+            <!-- Answer Format Toggle (Write-In vs Multiple Choice) -->
+            <div>
+              <label class="block text-[10px] font-mono uppercase text-slate-400 mb-1">Response Format:</label>
+              <div class="grid grid-cols-2 bg-lab-950 p-0.5 rounded-xl border border-slate-700">
+                <button id="formatWriteBtn" onclick="setExamFormat('write')" class="py-1 rounded-lg text-[11px] font-semibold bg-amber-500 text-slate-950 transition">
+                  Lab Write-In
+                </button>
+                <button id="formatMcqBtn" onclick="setExamFormat('mcq')" class="py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white transition">
+                  Multiple Choice
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Practical Question Card -->
+        <div class="p-4 space-y-4 flex-1 flex flex-col">
+          <!-- Station Prompt Box -->
+          <div class="p-4 rounded-2xl bg-lab-950 border-2 border-amber-500/40 shadow-inner space-y-2">
+            <div class="flex items-center justify-between text-[11px] font-mono text-amber-300">
+              <span>CADAVER SPECIMEN TAG #<span id="examTagPinNumber">2</span></span>
+              <span id="examDissectionLayerHint" class="text-sky-300">Layer 1: Superficial Back</span>
+            </div>
+            <p id="examQuestionPrompt" class="text-sm sm:text-base font-bold text-white leading-snug">
+              Identify the tagged structure on the cadaver.
+            </p>
+            <p id="examVisualClue" class="text-xs text-slate-400 leading-relaxed">
+              Clue: Examine the yellow flag pin stuck into the broad muscle originating from the thoracolumbar fascia and spinous processes T7–L5.
+            </p>
+          </div>
+
+          <!-- WRITE-IN INPUT AREA -->
+          <div id="examWriteInContainer" class="space-y-2.5">
+            <label class="block text-xs font-semibold text-slate-300">
+              Type your anatomical answer (synonyms &amp; cranial nerve numbers accepted):
+            </label>
+            <div class="relative">
+              <input id="examWriteInput" type="text"
+                     onkeydown="if(event.key==='Enter') submitWriteInAnswer()"
+                     oninput="updateAutocompleteSuggestions()"
+                     placeholder="e.g., Latissimus dorsi, Spinal accessory nerve, CN XI..."
+                     autocomplete="off"
+                     class="w-full bg-lab-950 text-sm text-white placeholder-slate-500 rounded-xl px-3.5 py-2.5 border border-slate-700 focus:outline-none focus:border-amber-400 font-medium" />
+              <!-- Quick Autocomplete Suggestions Chips -->
+              <div id="examAutocompleteBar" class="flex flex-wrap gap-1.5 mt-2"></div>
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+              <button id="submitWriteBtn" onclick="submitWriteInAnswer()" class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-amber-950/50 transition">
+                Submit Practical Answer
+              </button>
+              <button onclick="revealExamHint()" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+                Anatomical Hint
+              </button>
+            </div>
+          </div>
+
+          <!-- MULTIPLE CHOICE OPTIONS AREA -->
+          <div id="examMcqContainer" class="hidden space-y-2">
+            <!-- Populated dynamically with 4 anatomical choices -->
+          </div>
+
+          <!-- Hint Callout (Hidden until requested) -->
+          <div id="examHintBox" class="hidden p-3 rounded-xl bg-sky-950/50 border border-sky-500/40 text-xs text-sky-200 leading-relaxed"></div>
+
+          <!-- Grading Feedback & Detailed Explanation Box -->
+          <div id="examFeedbackBox" class="hidden p-4 rounded-2xl border space-y-2">
+            <div class="flex items-center justify-between">
+              <span id="examFeedbackTitle" class="text-sm font-extrabold"></span>
+              <span id="examFeedbackAcceptedTag" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900/80"></span>
+            </div>
+            <p id="examFeedbackOfficialAnswer" class="text-xs sm:text-sm font-bold text-white"></p>
+            <p id="examFeedbackExplanation" class="text-xs text-slate-200 leading-relaxed"></p>
+          </div>
+
+          <!-- Navigation Footer for Practical Stations -->
+          <div class="mt-auto pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+            <button onclick="prevExamStation()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition">
+              ← Prev Station
+            </button>
+            <button onclick="resetExamProgress()" class="px-2.5 py-1.5 rounded-lg text-[11px] text-slate-400 hover:text-slate-200 underline">
+              Reset Score
+            </button>
+            <button onclick="nextExamStation()" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-xs font-bold text-white shadow-md shadow-sky-950 transition">
+              Next Station →
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    const ANATOMY_STRUCTURES = [
+      {
+        id: 'trapezius',
+        pinNum: 1,
+        name: 'Trapezius',
+        latin: 'Musculus trapezius',
+        category: 'Muscle',
+        subCategory: 'Superficial Extrinsic Muscle',
+        layer: 1,
+        svgId: 'svg-trapezius',
+        pinCoords: { x: 356, y: 265 },
+        innervation: 'Spinal accessory nerve (CN XI) [motor]; C3–C4 ventral rami [proprioception/pain]',
+        innervationAccepted: ['spinal accessory nerve', 'accessory nerve', 'cn xi', 'cranial nerve xi', 'cranial nerve 11', 'cn 11'],
+        bloodSupply: 'Superficial branch of transverse cervical artery (plus dorsal scapular & occipital branches)',
+        origin: 'Medial 1/3 of superior nuchal line, external occipital protuberance (inion), nuchal ligament, and spinous processes of C7–T12 vertebrae',
+        insertion: 'Lateral 1/3 of clavicle, acromion, and spine of the scapula',
+        action: 'Descending (superior) fibers elevate scapula; middle fibers retract scapula; ascending (inferior) fibers depress scapula; superior & inferior fibers together rotate glenoid cavity superiorly',
+        cadaverLandmark: 'Most superficial diamond/trapezoid muscle of the upper back and neck. Look for its 3 distinct fiber directions converging on the shoulder girdle and its neurovascular bundle (CN XI + superficial branch of transverse cervical a.) running on its deep surface when reflected.',
+        clinical: 'Tested clinically by asking the patient to shrug their shoulders against resistance. Injury to the spinal accessory nerve (CN XI) in the posterior triangle of the neck leads to shoulder droop and difficulty abducting the arm above 90°.'
+      },
+      {
+        id: 'latissimus_dorsi',
+        pinNum: 2,
+        name: 'Latissimus dorsi',
+        latin: 'Musculus latissimus dorsi',
+        category: 'Muscle',
+        subCategory: 'Superficial Extrinsic Muscle',
+        layer: 1,
+        svgId: 'svg-latissimus-dorsi',
+        pinCoords: { x: 305, y: 555 },
+        innervation: 'Thoracodorsal nerve (middle subscapular nerve, C6–C8)',
+        innervationAccepted: ['thoracodorsal nerve', 'middle subscapular nerve', 'thoracodorsal'],
+        bloodSupply: 'Thoracodorsal artery (from subscapular artery) and dorsal perforating branches of posterior intercostal & lumbar arteries',
+        origin: 'Spinous processes of T7–T12, thoracolumbar fascia, iliac crest, and inferior 3 or 4 ribs (also inferior angle of scapula)',
+        insertion: 'Floor of the intertubercular (bicipital) sulcus of the humerus',
+        action: 'Extends, adducts, and medially rotates the humerus at the glenohumeral joint ("swimmer’s muscle"); raises trunk toward arms during climbing',
+        cadaverLandmark: 'Broad, fan-shaped muscle covering the inferior half of the back. Arises from the pearly white thoracolumbar fascia and sweeps superolaterally toward the axilla. Its superior border forms the inferior boundary of the Triangle of Auscultation.',
+        clinical: 'Frequently used for myocutaneous free-flap breast reconstruction or cardiomyoplasty. Thoracodorsal nerve vulnerability occurs during axillary lymph node dissection.'
+      },
+      {
+        id: 'levator_scapulae',
+        pinNum: 3,
+        name: 'Levator scapulae',
+        latin: 'Musculus levator scapulae',
+        category: 'Muscle',
+        subCategory: 'Superficial Extrinsic Muscle',
+        layer: 2,
+        svgId: 'svg-levator-scapulae',
+        pinCoords: { x: 350, y: 205 },
+        innervation: 'Dorsal scapular nerve (C5) and cervical spinal nerves C3–C4 (ventral rami)',
+        innervationAccepted: ['dorsal scapular nerve', 'c3-c4', 'dorsal scapular'],
+        bloodSupply: 'Dorsal scapular artery / deep branch of transverse cervical artery',
+        origin: 'Posterior tubercles of transverse processes of C1–C4 vertebrae',
+        insertion: 'Superior angle and superomedial border of the scapula (superior to root of scapular spine)',
+        action: 'Elevates the scapula medially and rotates the glenoid cavity inferiorly; extends and laterally flexes the neck',
+        cadaverLandmark: 'Strap-like muscle descending obliquely in the lateral neck deep to the sternocleidomastoid and superior trapezius, attaching specifically to the superior angle of the scapula just superior to Rhomboid minor.',
+        clinical: 'The dorsal scapular nerve and deep branch of the transverse cervical artery pass deep to Levator scapulae as they descend toward the medial border of the scapula.'
+      },
+      {
+        id: 'rhomboid_major',
+        pinNum: 4,
+        name: 'Rhomboid major',
+        latin: 'Musculus rhomboideus major',
+        category: 'Muscle',
+        subCategory: 'Superficial Extrinsic Muscle',
+        layer: 2,
+        svgId: 'svg-rhomboid-major',
+        pinCoords: { x: 365, y: 345 },
+        innervation: 'Dorsal scapular nerve (C4–C5)',
+        innervationAccepted: ['dorsal scapular nerve', 'dorsal scapular'],
+        bloodSupply: 'Deep branch of transverse cervical artery / dorsal scapular artery',
+        origin: 'Spinous processes of T2–T5 vertebrae and supraspinous ligament',
+        insertion: 'Medial (vertebral) border of the scapula from the level of the spine of the scapula to the inferior angle',
+        action: 'Retracts (adducts) and elevates the scapula; rotates glenoid cavity inferiorly; fixes scapula to thoracic wall',
+        cadaverLandmark: 'Flat quadrilateral sheet lying deep to Trapezius and immediately inferior to Rhomboid minor. Its fibers run inferolaterally from T2–T5 spinous processes to the medial scapular border below the scapular spine. Forms part of the floor/border of the Triangle of Auscultation.',
+        clinical: 'Dorsal scapular nerve lesion causes lateral displacement and inferior angle winging of the scapula on the affected side.'
+      },
+      {
+        id: 'rhomboid_minor',
+        pinNum: 5,
+        name: 'Rhomboid minor',
+        latin: 'Musculus rhomboideus minor',
+        category: 'Muscle',
+        subCategory: 'Superficial Extrinsic Muscle',
+        layer: 2,
+        svgId: 'svg-rhomboid-minor',
+        pinCoords: { x: 378, y: 266 },
+        innervation: 'Dorsal scapular nerve (C4–C5)',
+        innervationAccepted: ['dorsal scapular nerve', 'dorsal scapular'],
+        bloodSupply: 'Deep branch of transverse cervical artery / dorsal scapular artery',
+        origin: 'Inferior part of nuchal ligament and spinous processes of C7 and T1 vertebrae',
+        insertion: 'Smooth triangular area at the medial end (root) of the spine of the scapula',
+        action: 'Retracts and elevates the scapula; assists in rotating glenoid cavity inferiorly',
+        cadaverLandmark: 'Narrow cylindrical ribbon located superior to Rhomboid major and inferior to Levator scapulae. Inserts directly at the root of the spine of the scapula.',
+        clinical: 'Together with Rhomboid major, it is reflected laterally during cadaver dissection to expose the Dorsal scapular nerve and Deep branch of the transverse cervical artery along its deep surface and the underlying Serratus posterior superior.'
+      },
+      {
+        id: 'serratus_posterior_superior',
+        pinNum: 6,
+        name: 'Serratus posterior superior',
+        latin: 'Musculus serratus posterior superior',
+        category: 'Muscle',
+        subCategory: 'Intermediate Extrinsic (Respiratory) Muscle',
+        layer: 2,
+        svgId: 'svg-serratus-posterior-superior',
+        pinCoords: { x: 528, y: 268 },
+        innervation: 'Anterior (ventral) rami of upper thoracic spinal nerves (2nd to 5th intercostal nerves, T2–T5)',
+        innervationAccepted: ['intercostal nerves', 't2-t5 intercostal nerves', 'ventral rami of t2-t5', 'anterior rami of t2-t5'],
+        bloodSupply: 'Posterior intercostal arteries',
+        origin: 'Inferior part of nuchal ligament and spinous processes of C7–T3 vertebrae',
+        insertion: 'Superior borders of ribs 2–5 just lateral to their angles',
+        action: 'Elevates ribs 2–5 (accessory muscle of inspiration); proprioception of rib cage',
+        cadaverLandmark: 'Thin quadrilateral muscle with a medial aponeurosis and 4 fleshy serrated digitations running inferolaterally to ribs 2–5. Found immediately deep to the Rhomboid muscles and superficial to the thoracolumbar fascia and Splenius.',
+        clinical: 'Unlike intrinsic back muscles (innervated by dorsal rami), both Serratus posterior muscles are innervated by ventral rami (intercostal nerves) because they migrated from the hypaxial body wall.'
+      },
+      {
+        id: 'serratus_posterior_inferior',
+        pinNum: 7,
+        name: 'Serratus posterior inferior',
+        latin: 'Musculus serratus posterior inferior',
+        category: 'Muscle',
+        subCategory: 'Intermediate Extrinsic (Respiratory) Muscle',
+        layer: 2,
+        svgId: 'svg-serratus-posterior-inferior',
+        pinCoords: { x: 342, y: 588 },
+        innervation: 'Anterior (ventral) rami of lower thoracic spinal nerves (9th to 11th intercostal nerves & subcostal nerve, T9–T12)',
+        innervationAccepted: ['intercostal nerves', 'subcostal nerve', 't9-t12', 'ventral rami of t9-t12', 'anterior rami of t9-t12'],
+        bloodSupply: 'Posterior intercostal and subcostal arteries',
+        origin: 'Spinous processes of T11–L2 vertebrae and thoracolumbar fascia',
+        insertion: 'Inferior borders of ribs 9–12 just lateral to their angles',
+        action: 'Depresses ribs 9–12 and prevents lower ribs from being pulled superiorly by the diaphragm',
+        cadaverLandmark: 'Located deep to Latissimus dorsi at the thoracolumbar junction. Distinguished from Serratus posterior superior because its fibers run superolaterally onto the lower 4 ribs (9–12).',
+        clinical: 'Often implicated in myofascial back pain over the lower ribs; remember its superolateral fiber direction contrasts with the inferolateral direction of Serratus posterior superior.'
+      },
+      {
+        id: 'splenius',
+        pinNum: 8,
+        name: 'Splenius (capitis & cervicis)',
+        latin: 'Musculus splenius capitis et cervicis',
+        category: 'Muscle',
+        subCategory: 'Superficial Intrinsic (Spinotransversales) Layer',
+        layer: 3,
+        svgId: 'svg-splenius',
+        pinCoords: { x: 402, y: 205 },
+        innervation: 'Dorsal (posterior) rami of middle and lower cervical spinal nerves',
+        innervationAccepted: ['dorsal rami', 'posterior rami', 'dorsal rami of cervical spinal nerves', 'dorsal rami of spinal nerves'],
+        bloodSupply: 'Descending branch of occipital artery and deep cervical artery',
+        origin: 'Inferior half of nuchal ligament and spinous processes of C7–T6 vertebrae',
+        insertion: 'Splenius capitis: mastoid process of temporal bone & lateral 1/3 of superior nuchal line; Splenius cervicis: transverse processes of C1–C3',
+        action: 'Bilaterally: extends head and neck; Unilaterally: laterally flexes and rotates head and neck toward the SAME (ipsilateral) side',
+        cadaverLandmark: '"Bandage-like" muscle in the posterior neck lying deep to Trapezius, Rhomboids, and Serratus posterior superior. Look for its fibers running superolaterally from the midline toward the mastoid process—perpendicular to the overlying Rhomboids and superficial to the vertical Semispinalis capitis.',
+        clinical: 'Forms part of the floor of the posterior triangle of the neck and covers the vertical fibers of Semispinalis capitis.'
+      },
+      {
+        id: 'iliocostalis',
+        pinNum: 9,
+        name: 'Iliocostalis',
+        latin: 'Musculus iliocostalis (lumborum, thoracis, cervicis)',
+        category: 'Muscle',
+        subCategory: 'Intermediate Intrinsic (Erector Spinae — Lateral Column)',
+        layer: 3,
+        svgId: 'svg-iliocostalis',
+        pinCoords: { x: 336, y: 495 },
+        innervation: 'Dorsal (posterior) rami of spinal nerves',
+        innervationAccepted: ['dorsal rami', 'posterior rami', 'dorsal rami of spinal nerves', 'posterior rami of spinal nerves'],
+        bloodSupply: 'Posterior intercostal, subcostal, and lumbar arteries',
+        origin: 'Broad common tendon of erector spinae (posterior iliac crest, posterior sacrum, sacroiliac ligaments, lumbar & lower thoracic spinous processes)',
+        insertion: 'Angles of lower ribs (lumborum), angles of upper ribs (thoracis), and cervical transverse processes C4–C6 (cervicis)',
+        action: 'Bilaterally: extends vertebral column; Unilaterally: laterally flexes vertebral column',
+        cadaverLandmark: 'The MOST LATERAL column of the Erector Spinae group ("I" in "I Love Spaghetti"). Identified on the cadaver by its lateral position and distinct tendinous slips inserting directly onto the angles of the ribs.',
+        clinical: 'Along with Longissimus and Spinalis, it is the chief extensor of the spine and controls vertebral flexion via eccentric contraction.'
+      },
+      {
+        id: 'longissimus',
+        pinNum: 10,
+        name: 'Longissimus',
+        latin: 'Musculus longissimus (thoracis, cervicis, capitis)',
+        category: 'Muscle',
+        subCategory: 'Intermediate Intrinsic (Erector Spinae — Intermediate Column)',
+        layer: 3,
+        svgId: 'svg-longissimus',
+        pinCoords: { x: 390, y: 475 },
+        innervation: 'Dorsal (posterior) rami of spinal nerves',
+        innervationAccepted: ['dorsal rami', 'posterior rami', 'dorsal rami of spinal nerves', 'posterior rami of spinal nerves'],
+        bloodSupply: 'Posterior intercostal, subcostal, lumbar, and deep cervical arteries',
+        origin: 'Common tendon of erector spinae and transverse processes of thoracic and lower cervical vertebrae',
+        insertion: 'Ribs between tubercles and angles, transverse processes of thoracic/cervical vertebrae, and mastoid process of temporal bone (longissimus capitis)',
+        action: 'Bilaterally: extends vertebral column and head; Unilaterally: laterally flexes vertebral column and rotates head ipsilaterally',
+        cadaverLandmark: 'The INTERMEDIATE (middle) and longest column of the Erector Spinae ("Love" in "I Love Spaghetti"), situated directly between Iliocostalis laterally and Spinalis medially. It is the only erector spinae column reaching the skull (mastoid process).',
+        clinical: 'Forms the bulk of the paraspinal muscle mass palpated just lateral to the vertebral spinous processes.'
+      },
+      {
+        id: 'spinalis',
+        pinNum: 11,
+        name: 'Spinalis',
+        latin: 'Musculus spinalis (thoracis, cervicis, capitis)',
+        category: 'Muscle',
+        subCategory: 'Intermediate Intrinsic (Erector Spinae — Medial Column)',
+        layer: 3,
+        svgId: 'svg-spinalis',
+        pinCoords: { x: 428, y: 455 },
+        innervation: 'Dorsal (posterior) rami of spinal nerves',
+        innervationAccepted: ['dorsal rami', 'posterior rami', 'dorsal rami of spinal nerves', 'posterior rami of spinal nerves'],
+        bloodSupply: 'Posterior intercostal and deep cervical arteries',
+        origin: 'Common tendon of erector spinae and spinous processes of T11–L2 vertebrae',
+        insertion: 'Spinous processes of upper thoracic vertebrae (T1–T8) and cervical vertebrae',
+        action: 'Extends the vertebral column',
+        cadaverLandmark: 'The MOST MEDIAL and narrowest column of the Erector Spinae ("Spaghetti" in "I Love Spaghetti"), hugging the thoracic spinous processes medial to Longissimus.',
+        clinical: 'Best developed in the thoracic region (spinalis thoracis); often blended with Semispinalis capitis in the neck.'
+      },
+      {
+        id: 'multifidus',
+        pinNum: 12,
+        name: 'Multifidus',
+        latin: 'Musculus multifidus',
+        category: 'Muscle',
+        subCategory: 'Deep Intrinsic (Transversospinales) Layer',
+        layer: 4,
+        svgId: 'svg-multifidus',
+        pinCoords: { x: 405, y: 715 },
+        innervation: 'Dorsal (posterior) rami of spinal nerves',
+        innervationAccepted: ['dorsal rami', 'posterior rami', 'dorsal rami of spinal nerves', 'posterior rami of spinal nerves'],
+        bloodSupply: 'Lumbar, posterior intercostal, and lateral sacral arteries',
+        origin: 'Posterior sacrum, posterior superior iliac spine (PSIS), mammillary processes of lumbar vertebrae, transverse processes of T1–T12, and articular processes of C4–C7',
+        insertion: 'Spinous processes of vertebrae located 2–4 segments superior to origin',
+        action: 'Stabilizes vertebrae during local movements of vertebral column; bilaterally extends and unilaterally rotates trunk contralaterally',
+        cadaverLandmark: 'Exposed after reflecting the Erector Spinae. Look for thick, oblique muscle bundles in the lumbosacral region running superomedially from transverse/mammillary processes to spinous processes 2–4 segments higher.',
+        clinical: 'Atrophy and fatty infiltration of the lumbar Multifidus on MRI strongly correlate with chronic low back pain and segmental spinal instability.'
+      },
+      {
+        id: 'semispinalis',
+        pinNum: 13,
+        name: 'Semispinalis (capitis, cervicis, thoracis)',
+        latin: 'Musculus semispinalis',
+        category: 'Muscle',
+        subCategory: 'Deep Intrinsic (Transversospinales) Layer',
+        layer: 4,
+        svgId: 'svg-semispinalis',
+        pinCoords: { x: 416, y: 195 },
+        innervation: 'Dorsal (posterior) rami of cervical and thoracic spinal nerves',
+        innervationAccepted: ['dorsal rami', 'posterior rami', 'dorsal rami of spinal nerves', 'posterior rami of spinal nerves'],
+        bloodSupply: 'Occipital, deep cervical, and posterior intercostal arteries',
+        origin: 'Transverse processes of C4–T12 vertebrae',
+        insertion: 'Occipital bone between superior and inferior nuchal lines (capitis) and spinous processes 4–6 segments superior to origin (cervicis & thoracis)',
+        action: 'Extends head, neck, and thoracic spine; rotates them toward the opposite (contralateral) side',
+        cadaverLandmark: 'The most superficial member of the Transversospinales group. Semispinalis capitis forms a thick vertical longitudinal muscle mass in the posterior neck deep to Splenius and is famously PIERCED by the Greater occipital nerve (C2 dorsal ramus).',
+        clinical: 'Because Semispinalis capitis runs vertically up to the occiput, it produces the longitudinal muscle bulges on either side of the midline neck.'
+      },
+      {
+        id: 'superficial_transverse_cervical_artery',
+        pinNum: 14,
+        name: 'Superficial branch of transverse cervical artery',
+        latin: 'Ramus superficialis arteriae transversae colli',
+        category: 'Vessel',
+        subCategory: 'Arterial Supply (Superficial Back)',
+        layer: 2,
+        svgId: 'svg-superficial-transverse-cervical-artery',
+        pinCoords: { x: 215, y: 268 },
+        innervation: 'Accompanies Spinal accessory nerve (CN XI) to supply Trapezius',
+        innervationAccepted: ['spinal accessory nerve', 'cn xi', 'accessory nerve'],
+        bloodSupply: 'Arises from Transverse cervical artery (branch of Thyrocervical trunk from Subclavian artery)',
+        origin: 'Transverse cervical artery (from thyrocervical trunk of subclavian artery, Stage I)',
+        insertion: 'Arborizes on the deep (anterior) surface of the Trapezius muscle',
+        action: 'Provides primary arterial blood supply to the Trapezius muscle',
+        cadaverLandmark: 'Reflect the Trapezius muscle laterally and inspect its deep (underside) surface: you will find this artery branching alongside the Spinal accessory nerve (CN XI).',
+        clinical: 'When the transverse cervical artery divides into superficial and deep branches, the superficial branch is also called the superficial cervical artery.'
+      },
+      {
+        id: 'dorsal_scapular_artery',
+        pinNum: 15,
+        name: 'Deep branch of transverse cervical artery / dorsal scapular artery',
+        latin: 'Arteria dorsalis scapulae / Ramus profundus a. transversae colli',
+        category: 'Vessel',
+        subCategory: 'Arterial Supply (Intermediate Back & Scapular Anastomosis)',
+        layer: 2,
+        svgId: 'svg-dorsal-scapular-artery',
+        pinCoords: { x: 582, y: 342 },
+        innervation: 'Accompanies Dorsal scapular nerve (C5) deep to Levator scapulae and Rhomboids',
+        innervationAccepted: ['dorsal scapular nerve', 'dorsal scapular'],
+        bloodSupply: 'Arises directly from Subclavian artery (2nd/3rd part) OR as deep branch of Transverse cervical artery',
+        origin: 'Subclavian artery (part 2 or 3) or Thyrocervical trunk via Transverse cervical artery',
+        insertion: 'Courses inferiorly along the medial (vertebral) border of the scapula to the inferior angle',
+        action: 'Supplies Levator scapulae, Rhomboid minor, Rhomboid major, and participates in the collateral scapular anastomosis',
+        cadaverLandmark: 'Found by reflecting Rhomboid minor and Rhomboid major from the spinous processes: this artery runs vertically right along the medial border of the scapula accompanied by the Dorsal scapular nerve.',
+        clinical: 'Crucial component of the scapular anastomosis (with suprascapular and circumflex scapular arteries), providing collateral flow if the subclavian/axillary artery is obstructed.'
+      },
+      {
+        id: 'dorsal_scapular_nerve',
+        pinNum: 16,
+        name: 'Dorsal scapular nerve',
+        latin: 'Nervus dorsalis scapulae (C5)',
+        category: 'Nerve',
+        subCategory: 'Brachial Plexus Root Branch (C5)',
+        layer: 2,
+        svgId: 'svg-dorsal-scapular-nerve',
+        pinCoords: { x: 566, y: 295 },
+        innervation: 'Motor to Rhomboid major, Rhomboid minor, and Levator scapulae',
+        innervationAccepted: ['rhomboid major', 'rhomboid minor', 'levator scapulae', 'c5', 'ventral ramus of c5'],
+        bloodSupply: 'Accompanied by Deep branch of transverse cervical artery / Dorsal scapular artery',
+        origin: 'Ventral ramus of C5 spinal nerve (root of brachial plexus); pierces middle scalene muscle',
+        insertion: 'Deep surface of Levator scapulae, Rhomboid minor, and Rhomboid major along medial border of scapula',
+        action: 'Somatic motor innervation to Rhomboid major, Rhomboid minor, and Levator scapulae (scapular retraction & elevation)',
+        cadaverLandmark: 'Look deep to the reflected Rhomboid muscles parallel to the vertebral (medial) border of the scapula. It courses immediately adjacent to the Dorsal scapular artery.',
+        clinical: 'Entrapment as it pierces the middle scalene muscle causes aching pain along the medial border of the scapula and weakness in scapular retraction.'
+      },
+      {
+        id: 'spinal_accessory_nerve',
+        pinNum: 17,
+        name: 'Spinal accessory nerve / CN XI',
+        latin: 'Nervus accessorius (CN XI)',
+        category: 'Nerve',
+        subCategory: 'Cranial Nerve XI (Somatic Motor)',
+        layer: 2,
+        svgId: 'svg-spinal-accessory-nerve',
+        pinCoords: { x: 235, y: 235 },
+        innervation: 'Somatic motor to Sternocleidomastoid (SCM) and Trapezius',
+        innervationAccepted: ['trapezius', 'sternocleidomastoid', 'cn xi', 'spinal accessory nerve'],
+        bloodSupply: 'Accompanied by Superficial branch of transverse cervical artery on deep surface of Trapezius',
+        origin: 'Spinal rootlets from upper cervical spinal cord (C1–C5), ascends through foramen magnum, exits skull via jugular foramen',
+        insertion: 'Crosses posterior triangle of neck to run on the deep surface of Trapezius',
+        action: 'Provides sole motor innervation to Trapezius (and Sternocleidomastoid)',
+        cadaverLandmark: 'Pinned on the UNDERSIDE (deep surface) of the reflected Trapezius muscle flap, running alongside the superficial branch of the transverse cervical artery.',
+        clinical: 'Classic lab practical question: If the pin is in Trapezius and asks "Identify the nerve that innervates the tagged structure", the answer is Spinal accessory nerve (CN XI).'
+      },
+      {
+        id: 'greater_occipital_nerve',
+        pinNum: 18,
+        name: 'Greater occipital nerve / dorsal ramus of C2 spinal nerve',
+        latin: 'Nervus occipitalis major (Ramus dorsalis C2)',
+        category: 'Nerve',
+        subCategory: 'Dorsal Ramus of Cervical Spinal Nerve C2',
+        layer: 1,
+        svgId: 'svg-greater-occipital-nerve',
+        pinCoords: { x: 408, y: 112 },
+        innervation: 'Cutaneous sensation to posterior scalp up to the vertex; motor branch to Semispinalis capitis',
+        innervationAccepted: ['dorsal ramus of c2', 'c2', 'greater occipital nerve', 'posterior scalp', 'semispinalis capitis'],
+        bloodSupply: 'Accompanied superiorly by the Occipital artery near the superior nuchal line',
+        origin: 'Medial branch of the dorsal (posterior) ramus of the C2 spinal nerve (emerges inferior to obliquus capitis inferior)',
+        insertion: 'Pierces Semispinalis capitis and Trapezius aponeurosis to distribute over the posterior scalp',
+        action: 'Cutaneous sensory supply to the posterior scalp from the superior nuchal line to the vertex of the skull',
+        cadaverLandmark: 'High-yield landmark in the upper neck/occiput: look for a thick yellow nerve piercing directly through the vertical fibers of Semispinalis capitis just lateral to the external occipital protuberance (inion) and accompanied by the occipital artery.',
+        clinical: 'Irritation or compression of the Greater occipital nerve as it pierces Semispinalis capitis causes Occipital Neuralgia (shooting pain radiating up the back of the head).'
+      },
+      {
+        id: 'triangle_of_auscultation',
+        pinNum: 19,
+        name: 'Triangle of auscultation',
+        latin: 'Trigonum auscultationis',
+        category: 'Clinical Space',
+        subCategory: 'Anatomical Clinical Landmark',
+        layer: 1,
+        svgId: 'svg-triangle-of-auscultation',
+        pinCoords: { x: 312, y: 416 },
+        innervation: 'Boundaries innervated by CN XI (Trapezius), Thoracodorsal n. (Latissimus dorsi), & Dorsal scapular n. (Rhomboid major)',
+        innervationAccepted: ['rhomboid major', '6th intercostal space', 'trapezius', 'latissimus dorsi'],
+        bloodSupply: 'Floor contains 6th & 7th ribs, 6th intercostal space (posterior intercostal vessels), and Rhomboid major',
+        origin: 'BORDERS — Superior/Medial: Inferior lateral border of Trapezius; Inferior: Superior border of Latissimus dorsi; Lateral: Medial (vertebral) border of Scapula',
+        insertion: 'FLOOR — 6th and 7th ribs, 6th intercostal space (external/internal intercostal muscles), and Rhomboid major superiorly',
+        action: 'Clinical acoustic window where the thoracic wall is relatively thin and devoid of thick overlying extrinsic back musculature, allowing clear auscultation of respiratory sounds with a stethoscope.',
+        cadaverLandmark: 'Small triangular gap visible on the intact superficial back (Layer 1) just medial to the inferior part of the scapula where Trapezius, Latissimus dorsi, and the medial border of the scapula diverge.',
+        clinical: 'When a patient folds their arms across their chest (protracting the scapulae laterally) and leans forward, the Triangle of Auscultation enlarges significantly, exposing the 6th intercostal space (ideal for listening to the superior segment of the lower lung lobe).'
+      },
+      {
+        id: 'nuchal_ligament',
+        pinNum: 20,
+        name: 'Nuchal ligament',
+        latin: 'Ligamentum nuchae',
+        category: 'Other',
+        subCategory: 'Median Fibroelastic Septum / Ligament',
+        layer: 1,
+        svgId: 'svg-nuchal-ligament',
+        pinCoords: { x: 450, y: 168 },
+        innervation: 'Proprioceptive fibers from cervical dorsal rami',
+        innervationAccepted: ['cervical dorsal rami', 'nuchal ligament', 'ligamentum nuchae'],
+        bloodSupply: 'Branches of occipital and deep cervical arteries',
+        origin: 'External occipital protuberance (inion) and median nuchal line of occipital bone',
+        insertion: 'Spinous processes of cervical vertebrae C1–C7 (continuous inferiorly with supraspinous ligament at C7)',
+        action: 'Passively resists hyperflexion of the head and neck; provides a midline attachment septum for muscles without obstructing cervical extension',
+        cadaverLandmark: 'Dense, pearly-white median fibroelastic band running down the posterior midline of the neck from the external occipital protuberance to the prominent C7 spinous process.',
+        clinical: 'Serves as a shared midline origin for 4 key back muscles: Trapezius, Rhomboid minor, Serratus posterior superior, and Splenius capitis.'
+      }
+    ];
+
+    const PRACTICAL_QUESTIONS = [
+      // Featured User Prompt Stations (First two stations for immediate verification!)
+      {
+        id: 'q_feat_lat_id',
+        structureId: 'latissimus_dorsi',
+        type: 'identify',
+        featured: true,
+        layer: 1,
+        prompt: 'Identify the tagged structure on the cadaver.',
+        clue: 'Tag Pin #2 is placed directly in the broad, fan-shaped muscle covering the lower back and arising from the thoracolumbar fascia.',
+        officialAnswer: 'Latissimus dorsi',
+        acceptedAnswers: ['latissimus dorsi', 'latissimus dorsi muscle', 'm. latissimus dorsi', 'lats'],
+        mcqOptions: ['Latissimus dorsi', 'Trapezius', 'Serratus posterior inferior', 'Rhomboid major'],
+        explanation: 'Latissimus dorsi originates from spinous processes T7–L5, thoracolumbar fascia, iliac crest, and lower 3–4 ribs, and inserts into the floor of the intertubercular sulcus of the humerus.'
+      },
+      {
+        id: 'q_feat_trap_nerve',
+        structureId: 'trapezius',
+        type: 'innervation',
+        featured: true,
+        layer: 1,
+        prompt: 'Identify the nerve that innervates the tagged structure (motor innervation).',
+        clue: 'Tag Pin #1 is placed in the Trapezius muscle. Which cranial nerve runs along its deep surface to provide motor innervation?',
+        officialAnswer: 'Spinal accessory nerve (CN XI)',
+        acceptedAnswers: ['spinal accessory nerve', 'accessory nerve', 'cn xi', 'cranial nerve xi', 'cranial nerve 11', 'cn 11', 'spinal accessory'],
+        mcqOptions: ['Spinal accessory nerve (CN XI)', 'Dorsal scapular nerve (C5)', 'Thoracodorsal nerve (C6–C8)', 'Greater occipital nerve (C2)'],
+        explanation: 'Trapezius receives motor innervation from the Spinal accessory nerve (CN XI), which courses along its deep surface accompanied by the superficial branch of the transverse cervical artery.'
+      },
+      // Additional Structure Identification & Innervation Questions for all 20 structures
+      {
+        id: 'q_trap_id',
+        structureId: 'trapezius',
+        type: 'identify',
+        featured: false,
+        layer: 1,
+        prompt: 'Identify the tagged structure on the cadaver.',
+        clue: 'Tag Pin #1 marks the most superficial diamond-shaped muscle of the neck and upper back inserting onto the spine of the scapula, acromion, and lateral 1/3 of the clavicle.',
+        officialAnswer: 'Trapezius',
+        acceptedAnswers: ['trapezius', 'trapezius muscle', 'm. trapezius'],
+        mcqOptions: ['Trapezius', 'Latissimus dorsi', 'Splenius capitis', 'Levator scapulae'],
+        explanation: 'Trapezius has descending, middle, and ascending fibers that elevate, retract, and depress the scapula.'
+      },
+      {
+        id: 'q_lat_nerve',
+        structureId: 'latissimus_dorsi',
+        type: 'innervation',
+        featured: true,
+        layer: 1,
+        prompt: 'Identify the nerve that innervates the tagged structure.',
+        clue: 'Tag Pin #2 is placed in the Latissimus dorsi muscle. Which branch of the posterior cord of the brachial plexus innervates it?',
+        officialAnswer: 'Thoracodorsal nerve (C6–C8)',
+        acceptedAnswers: ['thoracodorsal nerve', 'middle subscapular nerve', 'thoracodorsal'],
+        mcqOptions: ['Thoracodorsal nerve (C6–C8)', 'Spinal accessory nerve (CN XI)', 'Dorsal scapular nerve (C5)', 'Long thoracic nerve (C5–C7)'],
+        explanation: 'Latissimus dorsi is innervated by the Thoracodorsal nerve (C6–C8) from the posterior cord of the brachial plexus.'
+      },
+      {
+        id: 'q_levator_id',
+        structureId: 'levator_scapulae',
+        type: 'identify',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the tagged muscle attaching to the superior angle of the scapula.',
+        clue: 'Tag Pin #3 is placed on the strap-like muscle descending from C1–C4 transverse processes to the superior angle of the scapula.',
+        officialAnswer: 'Levator scapulae',
+        acceptedAnswers: ['levator scapulae', 'levator scapulae muscle', 'levator scapula'],
+        mcqOptions: ['Levator scapulae', 'Rhomboid minor', 'Splenius cervicis', 'Semispinalis capitis'],
+        explanation: 'Levator scapulae originates from the posterior tubercles of C1–C4 transverse processes and inserts on the superior angle of the scapula.'
+      },
+      {
+        id: 'q_levator_nerve',
+        structureId: 'levator_scapulae',
+        type: 'innervation',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the nerve from the C5 root that innervates the tagged muscle.',
+        clue: 'Tag Pin #3 is placed in Levator scapulae, which shares its primary motor nerve with the Rhomboids.',
+        officialAnswer: 'Dorsal scapular nerve (C5)',
+        acceptedAnswers: ['dorsal scapular nerve', 'dorsal scapular', 'c3-c4 and dorsal scapular nerve'],
+        mcqOptions: ['Dorsal scapular nerve (C5)', 'Spinal accessory nerve (CN XI)', 'Suprascapular nerve', 'Greater occipital nerve'],
+        explanation: 'Levator scapulae is innervated by the Dorsal scapular nerve (C5) and direct branches from C3–C4 spinal nerves.'
+      },
+      {
+        id: 'q_rhom_maj_id',
+        structureId: 'rhomboid_major',
+        type: 'identify',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the tagged structure.',
+        clue: 'Tag Pin #4 is placed in the broad quadrilateral muscle extending from T2–T5 spinous processes to the medial border of the scapula inferior to the scapular spine.',
+        officialAnswer: 'Rhomboid major',
+        acceptedAnswers: ['rhomboid major', 'rhomboideus major', 'rhomboid major muscle'],
+        mcqOptions: ['Rhomboid major', 'Rhomboid minor', 'Serratus posterior superior', 'Trapezius'],
+        explanation: 'Rhomboid major inserts along the medial border of the scapula from the spine of the scapula to the inferior angle.'
+      },
+      {
+        id: 'q_rhom_maj_nerve',
+        structureId: 'rhomboid_major',
+        type: 'innervation',
+        featured: true,
+        layer: 2,
+        prompt: 'Identify the nerve that innervates the tagged structure.',
+        clue: 'Tag Pin #4 is placed in Rhomboid major. Name the nerve running along its deep surface near the medial border of the scapula.',
+        officialAnswer: 'Dorsal scapular nerve',
+        acceptedAnswers: ['dorsal scapular nerve', 'dorsal scapular'],
+        mcqOptions: ['Dorsal scapular nerve', 'Spinal accessory nerve (CN XI)', 'Thoracodorsal nerve', 'Long thoracic nerve'],
+        explanation: 'Both Rhomboid major and Rhomboid minor are innervated by the Dorsal scapular nerve (C5).'
+      },
+      {
+        id: 'q_rhom_min_id',
+        structureId: 'rhomboid_minor',
+        type: 'identify',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the tagged narrow muscle inserting at the root of the spine of the scapula.',
+        clue: 'Tag Pin #5 marks the small ribbon-like muscle located immediately superior to Rhomboid major and originating from C7–T1.',
+        officialAnswer: 'Rhomboid minor',
+        acceptedAnswers: ['rhomboid minor', 'rhomboideus minor', 'rhomboid minor muscle'],
+        mcqOptions: ['Rhomboid minor', 'Rhomboid major', 'Levator scapulae', 'Serratus posterior superior'],
+        explanation: 'Rhomboid minor arises from the nuchal ligament and C7–T1 spinous processes and inserts at the medial end (root) of the scapular spine.'
+      },
+      {
+        id: 'q_rhom_min_nerve',
+        structureId: 'rhomboid_minor',
+        type: 'innervation',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the nerve that innervates the tagged structure.',
+        clue: 'Tag Pin #5 is placed in Rhomboid minor.',
+        officialAnswer: 'Dorsal scapular nerve',
+        acceptedAnswers: ['dorsal scapular nerve', 'dorsal scapular'],
+        mcqOptions: ['Dorsal scapular nerve', 'Spinal accessory nerve (CN XI)', 'Intercostal nerves T2–T5', 'Dorsal rami of cervical nerves'],
+        explanation: 'Rhomboid minor is innervated by the Dorsal scapular nerve (C5).'
+      },
+      {
+        id: 'q_sps_id',
+        structureId: 'serratus_posterior_superior',
+        type: 'identify',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the tagged structure exposed deep to the reflected Rhomboids.',
+        clue: 'Tag Pin #6 marks the thin muscle whose fibers run inferolaterally from C7–T3 to the superior borders of ribs 2–5.',
+        officialAnswer: 'Serratus posterior superior',
+        acceptedAnswers: ['serratus posterior superior', 'serratus posterior superior muscle'],
+        mcqOptions: ['Serratus posterior superior', 'Serratus posterior inferior', 'Rhomboid major', 'Splenius cervicis'],
+        explanation: 'Serratus posterior superior lies deep to the Rhomboids and elevates ribs 2–5.'
+      },
+      {
+        id: 'q_sps_nerve',
+        structureId: 'serratus_posterior_superior',
+        type: 'innervation',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the nerves that innervate the tagged structure.',
+        clue: 'Tag Pin #6 is in Serratus posterior superior. Remember: intermediate extrinsic respiratory back muscles are innervated by ventral rami!',
+        officialAnswer: 'Intercostal nerves (T2–T5 anterior/ventral rami)',
+        acceptedAnswers: ['intercostal nerves', 't2-t5 intercostal nerves', 'ventral rami of t2-t5', 'anterior rami of t2-t5', 'upper intercostal nerves'],
+        mcqOptions: ['Intercostal nerves (T2–T5)', 'Dorsal rami of thoracic spinal nerves', 'Dorsal scapular nerve', 'Long thoracic nerve'],
+        explanation: 'Serratus posterior superior is innervated by the 2nd through 5th intercostal nerves (ventral rami of T2–T5).'
+      },
+      {
+        id: 'q_spi_id',
+        structureId: 'serratus_posterior_inferior',
+        type: 'identify',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the tagged structure deep to Latissimus dorsi inserting on the lower 4 ribs.',
+        clue: 'Tag Pin #7 marks the muscle whose fibers run superolaterally from T11–L2 spinous processes to ribs 9–12.',
+        officialAnswer: 'Serratus posterior inferior',
+        acceptedAnswers: ['serratus posterior inferior', 'serratus posterior inferior muscle'],
+        mcqOptions: ['Serratus posterior inferior', 'Serratus posterior superior', 'Iliocostalis lumborum', 'Latissimus dorsi'],
+        explanation: 'Serratus posterior inferior depresses ribs 9–12 and is innervated by ventral rami T9–T12 (intercostal & subcostal nerves).'
+      },
+      {
+        id: 'q_splenius_id',
+        structureId: 'splenius',
+        type: 'identify',
+        featured: false,
+        layer: 3,
+        prompt: 'Identify the tagged superficial intrinsic muscle of the posterior neck.',
+        clue: 'Tag Pin #8 is placed in the "bandage-like" muscle whose fibers ascend superolaterally from the nuchal ligament and upper thoracic spinous processes toward the mastoid process.',
+        officialAnswer: 'Splenius (Splenius capitis / cervicis)',
+        acceptedAnswers: ['splenius', 'splenius capitis', 'splenius cervicis', 'splenius muscle'],
+        mcqOptions: ['Splenius', 'Semispinalis capitis', 'Levator scapulae', 'Longissimus capitis'],
+        explanation: 'Splenius (capitis and cervicis) forms the spinotransversales layer, running superolaterally superficial to Semispinalis capitis.'
+      },
+      {
+        id: 'q_splenius_nerve',
+        structureId: 'splenius',
+        type: 'innervation',
+        featured: false,
+        layer: 3,
+        prompt: 'Identify the nerve supply that innervates the tagged intrinsic back muscle.',
+        clue: 'Tag Pin #8 is in Splenius. Like all true intrinsic (epaxial) back muscles, which rami of spinal nerves innervate it?',
+        officialAnswer: 'Dorsal rami of spinal nerves (middle & lower cervical dorsal rami)',
+        acceptedAnswers: ['dorsal rami', 'posterior rami', 'dorsal rami of spinal nerves', 'dorsal rami of cervical spinal nerves', 'posterior rami of spinal nerves'],
+        mcqOptions: ['Dorsal rami of spinal nerves', 'Ventral rami of cervical nerves', 'Spinal accessory nerve (CN XI)', 'Dorsal scapular nerve'],
+        explanation: 'All true intrinsic muscles of the back (Splenius, Erector spinae, Transversospinales) are innervated by Dorsal (posterior) rami of spinal nerves.'
+      },
+      {
+        id: 'q_iliocostalis_id',
+        structureId: 'iliocostalis',
+        type: 'identify',
+        featured: false,
+        layer: 3,
+        prompt: 'Identify the tagged lateral column of the Erector Spinae.',
+        clue: 'Tag Pin #9 is placed in the most lateral column of the erector spinae group inserting onto the angles of the ribs.',
+        officialAnswer: 'Iliocostalis',
+        acceptedAnswers: ['iliocostalis', 'iliocostalis muscle', 'iliocostalis thoracis', 'iliocostalis lumborum'],
+        mcqOptions: ['Iliocostalis', 'Longissimus', 'Spinalis', 'Multifidus'],
+        explanation: 'Remember "I Love Spaghetti" from lateral to medial: Iliocostalis is the most lateral column of the erector spinae.'
+      },
+      {
+        id: 'q_longissimus_id',
+        structureId: 'longissimus',
+        type: 'identify',
+        featured: false,
+        layer: 3,
+        prompt: 'Identify the tagged intermediate (middle) column of the Erector Spinae.',
+        clue: 'Tag Pin #10 is placed in the middle column of the erector spinae located between Iliocostalis laterally and Spinalis medially.',
+        officialAnswer: 'Longissimus',
+        acceptedAnswers: ['longissimus', 'longissimus muscle', 'longissimus thoracis'],
+        mcqOptions: ['Longissimus', 'Iliocostalis', 'Spinalis', 'Semispinalis'],
+        explanation: 'Longissimus is the intermediate and longest column of the erector spinae, extending all the way to the mastoid process.'
+      },
+      {
+        id: 'q_spinalis_id',
+        structureId: 'spinalis',
+        type: 'identify',
+        featured: false,
+        layer: 3,
+        prompt: 'Identify the tagged medial column of the Erector Spinae.',
+        clue: 'Tag Pin #11 is placed in the narrowest, most medial column of the erector spinae immediately adjacent to the thoracic spinous processes.',
+        officialAnswer: 'Spinalis',
+        acceptedAnswers: ['spinalis', 'spinalis muscle', 'spinalis thoracis'],
+        mcqOptions: ['Spinalis', 'Longissimus', 'Iliocostalis', 'Multifidus'],
+        explanation: 'Spinalis is the most medial column of the erector spinae ("Spaghetti" in "I Love Spaghetti").'
+      },
+      {
+        id: 'q_multifidus_id',
+        structureId: 'multifidus',
+        type: 'identify',
+        featured: false,
+        layer: 4,
+        prompt: 'Identify the tagged deep intrinsic muscle best developed in the lumbosacral region.',
+        clue: 'Tag Pin #12 marks the deep oblique transversospinales muscle fibers spanning 2–4 segments in the lumbar region.',
+        officialAnswer: 'Multifidus',
+        acceptedAnswers: ['multifidus', 'multifidus muscle'],
+        mcqOptions: ['Multifidus', 'Semispinalis', 'Spinalis', 'Longissimus'],
+        explanation: 'Multifidus consists of oblique fascicles spanning 2–4 vertebral segments and is thickest in the lumbar region.'
+      },
+      {
+        id: 'q_semispinalis_id',
+        structureId: 'semispinalis',
+        type: 'identify',
+        featured: false,
+        layer: 4,
+        prompt: 'Identify the tagged vertical deep intrinsic muscle pierced by the Greater occipital nerve.',
+        clue: 'Tag Pin #13 marks the prominent longitudinal muscle in the posterior neck spanning 4–6 segments and inserting on the occipital bone.',
+        officialAnswer: 'Semispinalis (Semispinalis capitis)',
+        acceptedAnswers: ['semispinalis', 'semispinalis capitis', 'semispinalis cervicis', 'semispinalis thoracis'],
+        mcqOptions: ['Semispinalis', 'Splenius', 'Multifidus', 'Trapezius'],
+        explanation: 'Semispinalis capitis has vertical fibers inserting between the superior and inferior nuchal lines and is pierced by the Greater occipital nerve (C2).'
+      },
+      {
+        id: 'q_sup_tca_id',
+        structureId: 'superficial_transverse_cervical_artery',
+        type: 'identify',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the tagged artery coursing on the deep surface of the reflected Trapezius.',
+        clue: 'Tag Pin #14 marks the crimson artery accompanying the Spinal accessory nerve (CN XI) on the underside of Trapezius.',
+        officialAnswer: 'Superficial branch of transverse cervical artery',
+        acceptedAnswers: ['superficial branch of transverse cervical artery', 'superficial cervical artery', 'transverse cervical artery'],
+        mcqOptions: [
+          'Superficial branch of transverse cervical artery',
+          'Deep branch of transverse cervical artery / dorsal scapular artery',
+          'Thoracodorsal artery',
+          'Occipital artery'
+        ],
+        explanation: 'The superficial branch of the transverse cervical artery accompanies CN XI on the deep surface of Trapezius.'
+      },
+      {
+        id: 'q_dsa_id',
+        structureId: 'dorsal_scapular_artery',
+        type: 'identify',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the tagged artery running deep to the Rhomboids along the medial border of the scapula.',
+        clue: 'Tag Pin #15 marks the vertical artery descending alongside the Dorsal scapular nerve parallel to the vertebral border of the scapula.',
+        officialAnswer: 'Deep branch of transverse cervical artery / dorsal scapular artery',
+        acceptedAnswers: ['dorsal scapular artery', 'deep branch of transverse cervical artery', 'deep branch of transverse cervical artery/dorsal scapular artery'],
+        mcqOptions: [
+          'Deep branch of transverse cervical artery / dorsal scapular artery',
+          'Superficial branch of transverse cervical artery',
+          'Suprascapular artery',
+          'Circumflex scapular artery'
+        ],
+        explanation: 'The Dorsal scapular artery (or deep branch of transverse cervical artery) runs deep to Levator scapulae and the Rhomboids along the medial border of the scapula.'
+      },
+      {
+        id: 'q_dsn_id',
+        structureId: 'dorsal_scapular_nerve',
+        type: 'identify',
+        featured: false,
+        layer: 2,
+        prompt: 'Identify the tagged nerve coursing deep to Levator scapulae and the Rhomboids.',
+        clue: 'Tag Pin #16 marks the nerve descending along the medial border of the scapula with the dorsal scapular artery.',
+        officialAnswer: 'Dorsal scapular nerve',
+        acceptedAnswers: ['dorsal scapular nerve', 'dorsal scapular'],
+        mcqOptions: ['Dorsal scapular nerve', 'Spinal accessory nerve / CN XI', 'Greater occipital nerve', 'Thoracodorsal nerve'],
+        explanation: 'The Dorsal scapular nerve (C5) pierces the middle scalene and descends deep to Levator scapulae and Rhomboid minor/major.'
+      },
+      {
+        id: 'q_cn11_id',
+        structureId: 'spinal_accessory_nerve',
+        type: 'identify',
+        featured: true,
+        layer: 2,
+        prompt: 'Identify the tagged nerve pinned on the deep surface of the reflected Trapezius.',
+        clue: 'Tag Pin #17 marks the yellow nerve traveling with the superficial branch of the transverse cervical artery on the underside of Trapezius.',
+        officialAnswer: 'Spinal accessory nerve / CN XI',
+        acceptedAnswers: ['spinal accessory nerve', 'accessory nerve', 'cn xi', 'cranial nerve xi', 'cranial nerve 11', 'cn 11'],
+        mcqOptions: ['Spinal accessory nerve / CN XI', 'Dorsal scapular nerve', 'Greater occipital nerve / C2', 'Suprascapular nerve'],
+        explanation: 'The Spinal accessory nerve (CN XI) runs on the deep surface of Trapezius and provides its sole motor innervation.'
+      },
+      {
+        id: 'q_gon_id',
+        structureId: 'greater_occipital_nerve',
+        type: 'identify',
+        featured: false,
+        layer: 1,
+        prompt: 'Identify the tagged nerve piercing Semispinalis capitis near the occiput.',
+        clue: 'Tag Pin #18 marks the prominent sensory nerve emerging inferior to obliquus capitis inferior and ascending onto the posterior scalp.',
+        officialAnswer: 'Greater occipital nerve / dorsal ramus of C2 spinal nerve',
+        acceptedAnswers: ['greater occipital nerve', 'dorsal ramus of c2', 'dorsal ramus of c2 spinal nerve', 'c2 dorsal ramus'],
+        mcqOptions: [
+          'Greater occipital nerve / dorsal ramus of C2 spinal nerve',
+          'Suboccipital nerve (dorsal ramus of C1)',
+          'Spinal accessory nerve / CN XI',
+          'Lesser occipital nerve'
+        ],
+        explanation: 'The Greater occipital nerve is the dorsal ramus of the C2 spinal nerve; it pierces Semispinalis capitis to supply cutaneous sensation to the posterior scalp.'
+      },
+      {
+        id: 'q_toa_id',
+        structureId: 'triangle_of_auscultation',
+        type: 'clinical',
+        featured: true,
+        layer: 1,
+        prompt: 'Identify the tagged clinical space on the cadaver.',
+        clue: 'Tag Pin #19 is placed in the triangular window bounded by Trapezius, Latissimus dorsi, and the medial border of the scapula.',
+        officialAnswer: 'Triangle of auscultation',
+        acceptedAnswers: ['triangle of auscultation', 'auscultation triangle'],
+        mcqOptions: ['Triangle of auscultation', 'Lumbar triangle of Petit', 'Suboccipital triangle', 'Quadrangular space'],
+        explanation: 'The Triangle of Auscultation is bounded superior-medially by Trapezius, inferiorly by Latissimus dorsi, and laterally by the medial border of the scapula.'
+      },
+      {
+        id: 'q_toa_floor',
+        structureId: 'triangle_of_auscultation',
+        type: 'clinical',
+        featured: false,
+        layer: 1,
+        prompt: 'Which structures form the FLOOR of the tagged clinical space (Triangle of auscultation)?',
+        clue: 'Tag Pin #19 is in the Triangle of Auscultation. What intercostal space and muscle lie immediately at its floor for stethoscope auscultation?',
+        officialAnswer: '6th and 7th ribs, 6th intercostal space, and Rhomboid major',
+        acceptedAnswers: ['6th intercostal space', 'rhomboid major', '6th and 7th ribs', 'ribs 6 and 7', '6th intercostal space and rhomboid major'],
+        mcqOptions: [
+          '6th and 7th ribs, 6th intercostal space, and Rhomboid major',
+          '4th intercostal space and Serratus posterior superior',
+          '8th and 9th ribs and Erector spinae',
+          'Internal abdominal oblique and Transversus abdominis'
+        ],
+        explanation: 'The floor of the Triangle of Auscultation is formed by the 6th and 7th ribs, the 6th intercostal space, and Rhomboid major superiorly.'
+      },
+      {
+        id: 'q_nuchal_id',
+        structureId: 'nuchal_ligament',
+        type: 'identify',
+        featured: false,
+        layer: 1,
+        prompt: 'Identify the tagged median fibroelastic structure in the posterior neck.',
+        clue: 'Tag Pin #20 marks the midline septum extending from the external occipital protuberance (inion) to the C7 spinous process.',
+        officialAnswer: 'Nuchal ligament (Ligamentum nuchae)',
+        acceptedAnswers: ['nuchal ligament', 'ligamentum nuchae'],
+        mcqOptions: ['Nuchal ligament', 'Thoracolumbar fascia', 'Supraspinous ligament', 'Anterior longitudinal ligament'],
+        explanation: 'The Nuchal ligament extends from the external occipital protuberance to the C7 spinous process and serves as an attachment site for Trapezius, Rhomboid minor, Serratus posterior superior, and Splenius capitis.'
+      }
+    ];
+
+    let currentAppMode = 'study'; // 'study' | 'exam'
+    let currentLayer = 1; // 1, 2, 3, 4
+    let selectedStructureId = 'trapezius';
+    let currentCategoryFilter = 'all';
+    let showPins = true;
+    let alwaysShowNeurovascular = false;
+    let isScapulaProtracted = false;
+    let studiedSet = new Set(['trapezius']);
+
+    // Practical Exam State
+    let activeExamDeck = [...PRACTICAL_QUESTIONS];
+    let currentExamIndex = 0;
+    let examFormat = 'write'; // 'write' | 'mcq'
+    let examAnsweredCurrent = false;
+    let examCorrectCount = 0;
+    let examAttemptedCount = 0;
+
+    function setDissectionLayer(layerNum, keepSelection = false) {
+      currentLayer = layerNum;
+
+      // Update layer button styles
+      const badgeTexts = {
+        1: 'Layer 1: Superficial Extrinsic (Intact)',
+        2: 'Layer 2: Reflected Trapezius & Rhomboids',
+        3: 'Layer 3: Intermediate Intrinsic (Splenius & Erector Spinae)',
+        4: 'Layer 4: Deep Intrinsic (Semispinalis & Multifidus)'
+      };
+      document.getElementById('currentLayerBadge').textContent = badgeTexts[layerNum];
+
+      for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById(`layerBtn${i}`);
+        if (i === layerNum) {
+          btn.className = 'layer-btn px-2.5 py-2 rounded-xl text-left border transition-all bg-rose-600/25 border-rose-500 text-white shadow-md';
+        } else {
+          btn.className = 'layer-btn px-2.5 py-2 rounded-xl text-left border transition-all bg-lab-900 border-slate-800 text-slate-300 hover:border-slate-700';
+        }
+      }
+
+      // Show/Hide SVG muscle layer groups realistically
+      const l1 = document.getElementById('layer1Group');
+      const l2 = document.getElementById('layer2Group');
+      const l3 = document.getElementById('layer3Group');
+      const l4 = document.getElementById('layer4Group');
+
+      l1.style.display = (layerNum === 1) ? 'block' : 'none';
+      l2.style.display = (layerNum === 2) ? 'block' : 'none';
+      l3.style.display = (layerNum === 2 || layerNum === 3) ? 'block' : 'none';
+      l4.style.display = 'block'; // Deepest layer sits underneath
+
+      // Configure neurovascular visibility per layer (or X-Ray override)
+      const gon = document.getElementById('svg-greater-occipital-nerve');
+      const supTca = document.getElementById('svg-superficial-transverse-cervical-artery');
+      const cn11 = document.getElementById('svg-spinal-accessory-nerve');
+      const dsa = document.getElementById('svg-dorsal-scapular-artery');
+      const dsn = document.getElementById('svg-dorsal-scapular-nerve');
+
+      // Greater occipital nerve is visible in Layers 1, 3, 4 (and 2)
+      gon.style.display = 'block';
+      // CN XI, Superficial TCA, Dorsal scapular nerve & artery are featured in Layer 2 (or when X-Ray is ON)
+      const showDeepNeuro = (layerNum === 2) || alwaysShowNeurovascular;
+      supTca.style.display = showDeepNeuro ? 'block' : 'none';
+      cn11.style.display = showDeepNeuro ? 'block' : 'none';
+      dsa.style.display = showDeepNeuro ? 'block' : 'none';
+      dsn.style.display = showDeepNeuro ? 'block' : 'none';
+
+      renderCadaverPins();
+    }
+
+    function renderCadaverPins() {
+      const pinsLayer = document.getElementById('cadaverPinsLayer');
+      pinsLayer.innerHTML = '';
+
+      if (!showPins || currentAppMode === 'exam') return;
+
+      // Filter structures visible on current layer (or always show if neurovascular X-ray is active)
+      ANATOMY_STRUCTURES.forEach(st => {
+        const isVisibleOnLayer =
+          st.layer === currentLayer ||
+          (st.id === 'nuchal_ligament') ||
+          (st.id === 'greater_occipital_nerve') ||
+          (alwaysShowNeurovascular && (st.category === 'Nerve' || st.category === 'Vessel'));
+
+        if (!isVisibleOnLayer) return;
+
+        const isSelected = st.id === selectedStructureId;
+        const pinColor =
+          st.category === 'Muscle' ? '#e11d48' :
+          st.category === 'Vessel' ? '#ef4444' :
+          st.category === 'Nerve' ? '#eab308' :
+          st.category === 'Clinical Space' ? '#0ea5e9' : '#94a3b8';
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'cursor-pointer transition-transform');
+        g.setAttribute('onclick', `selectStructure('${st.id}')`);
+        g.setAttribute('onmouseenter', `hoverStructure('${st.id}')`);
+        g.setAttribute('onmouseleave', `clearHoverStructure()`);
+
+        // Pin Needle Line
+        const needle = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        needle.setAttribute('x1', st.pinCoords.x);
+        needle.setAttribute('y1', st.pinCoords.y);
+        needle.setAttribute('x2', st.pinCoords.x + 12);
+        needle.setAttribute('y2', st.pinCoords.y - 16);
+        needle.setAttribute('stroke', '#e2e8f0');
+        needle.setAttribute('stroke-width', isSelected ? '2.5' : '1.6');
+
+        // Pin Head Circle
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', st.pinCoords.x + 14);
+        circle.setAttribute('cy', st.pinCoords.y - 19);
+        circle.setAttribute('r', isSelected ? '14' : '11');
+        circle.setAttribute('fill', isSelected ? '#facc15' : pinColor);
+        circle.setAttribute('stroke', isSelected ? '#ffffff' : '#0f172a');
+        circle.setAttribute('stroke-width', isSelected ? '2.5' : '1.8');
+
+        // Pin Number Label
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', st.pinCoords.x + 14);
+        text.setAttribute('y', st.pinCoords.y - 15);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', (isSelected || st.category === 'Nerve') ? '#090d14' : '#ffffff');
+        text.setAttribute('font-size', isSelected ? '11' : '9.5');
+        text.setAttribute('font-family', 'JetBrains Mono');
+        text.setAttribute('font-weight', '800');
+        text.textContent = st.pinNum;
+
+        g.appendChild(needle);
+        g.appendChild(circle);
+        g.appendChild(text);
+        pinsLayer.appendChild(g);
+      });
+    }
+
+    function selectStructure(structureId) {
+      const st = ANATOMY_STRUCTURES.find(item => item.id === structureId);
+      if (!st) return;
+
+      selectedStructureId = structureId;
+      studiedSet.add(structureId);
+      updateStudiedCounter();
+
+      // Switch dissection layer automatically if the selected structure belongs to another layer
+      if (st.layer !== currentLayer && st.id !== 'nuchal_ligament' && st.id !== 'greater_occipital_nerve') {
+        setDissectionLayer(st.layer, true);
+      } else {
+        renderCadaverPins();
+      }
+
+      // Highlight SVG element
+      document.querySelectorAll('.cadaver-structure').forEach(el => {
+        el.classList.remove('selected-structure', 'border-highlight-sup', 'border-highlight-inf', 'border-highlight-lat');
+      });
+      document.getElementById('auscultationBorderOverlays').classList.add('hidden');
+
+      const svgEl = document.getElementById(st.svgId);
+      if (svgEl) {
+        svgEl.classList.add('selected-structure');
+      }
+
+      // Populate Right Study Panel
+      document.getElementById('detailPinBadge').textContent = `PIN #${st.pinNum}`;
+      document.getElementById('detailCategoryBadge').textContent = st.subCategory;
+      document.getElementById('detailLayerBadge').textContent = `Layer ${st.layer}`;
+      document.getElementById('detailTitle').textContent = st.name;
+      document.getElementById('detailLatinSub').textContent = st.latin;
+      document.getElementById('detailInnervation').textContent = st.innervation;
+      document.getElementById('detailBloodSupply').textContent = st.bloodSupply;
+      document.getElementById('detailCadaverLandmark').textContent = st.cadaverLandmark;
+      document.getElementById('detailOrigin').textContent = st.origin;
+      document.getElementById('detailInsertion').textContent = st.insertion;
+      document.getElementById('detailAction').textContent = st.action;
+      document.getElementById('detailClinical').textContent = st.clinical;
+
+      // Customize Labels for Triangle of Auscultation vs Muscles/Nerves
+      if (st.id === 'triangle_of_auscultation') {
+        document.getElementById('detailOriginLabel').textContent = '3 Anatomical Borders';
+        document.getElementById('detailInsertionLabel').textContent = 'Floor of Triangle';
+        document.getElementById('triangleSpecialBox').classList.remove('hidden');
+      } else {
+        document.getElementById('detailOriginLabel').textContent = 'Origin / Proximal';
+        document.getElementById('detailInsertionLabel').textContent = 'Insertion / Distal';
+        document.getElementById('triangleSpecialBox').classList.add('hidden');
+      }
+
+      const idx = ANATOMY_STRUCTURES.findIndex(x => x.id === structureId);
+      document.getElementById('structureIndexIndicator').textContent = `${idx + 1} of ${ANATOMY_STRUCTURES.length}`;
+      document.getElementById('canvasHoverReadout').innerHTML =
+        `<strong class="text-amber-300">Pin #${st.pinNum}: ${st.name}</strong> — <span class="text-slate-300">Innervation: ${st.innervation}</span>`;
+
+      renderStructureChecklist();
+    }
+
+    function hoverStructure(structureId) {
+      const st = ANATOMY_STRUCTURES.find(item => item.id === structureId);
+      if (!st) return;
+      if (currentAppMode === 'exam') {
+        document.getElementById('canvasHoverReadout').innerHTML =
+          `<span class="text-amber-300 font-semibold">Exam Mode Active:</span> Identify the structure or innervation at the pulsing yellow flag pin!`;
+        return;
+      }
+      document.getElementById('canvasHoverReadout').innerHTML =
+        `<strong class="text-sky-300">Pin #${st.pinNum}: ${st.name}</strong> <span class="text-slate-400">(${st.category})</span> — Click to inspect`;
+    }
+
+    function clearHoverStructure() {
+      if (currentAppMode === 'exam') return;
+      const st = ANATOMY_STRUCTURES.find(item => item.id === selectedStructureId);
+      if (st) {
+        document.getElementById('canvasHoverReadout').innerHTML =
+          `<strong class="text-amber-300">Pin #${st.pinNum}: ${st.name}</strong> — <span class="text-slate-300">Innervation: ${st.innervation}</span>`;
+      }
+    }
+
+    function highlightTrianglePart(part) {
+      setDissectionLayer(1, true);
+      document.querySelectorAll('.cadaver-structure').forEach(el => {
+        el.classList.remove('selected-structure', 'border-highlight-sup', 'border-highlight-inf', 'border-highlight-lat');
+      });
+      document.getElementById('auscultationBorderOverlays').classList.remove('hidden');
+
+      const readout = document.getElementById('canvasHoverReadout');
+      if (part === 'superior') {
+        document.getElementById('svg-trapezius').classList.add('border-highlight-sup');
+        readout.innerHTML = `<strong class="text-sky-300">Superior/Medial Border:</strong> Inferior lateral border of <strong>Trapezius</strong>`;
+      } else if (part === 'inferior') {
+        document.getElementById('svg-latissimus-dorsi').classList.add('border-highlight-inf');
+        readout.innerHTML = `<strong class="text-purple-300">Inferior Border:</strong> Superior border of <strong>Latissimus dorsi</strong>`;
+      } else if (part === 'lateral') {
+        document.getElementById('leftScapulaGroup').classList.add('border-highlight-lat');
+        readout.innerHTML = `<strong class="text-emerald-300">Lateral Border:</strong> Medial (vertebral) border of the <strong>Scapula</strong>`;
+      } else if (part === 'floor') {
+        document.getElementById('svg-triangle-of-auscultation').classList.add('selected-structure');
+        readout.innerHTML = `<strong class="text-amber-300">Floor of Space:</strong> <strong>6th &amp; 7th ribs</strong>, <strong>6th intercostal space</strong>, and <strong>Rhomboid major</strong>`;
+      }
+    }
+
+    function toggleScapularProtraction() {
+      isScapulaProtracted = !isScapulaProtracted;
+      const leftScap = document.getElementById('leftScapulaGroup');
+      const polyLeft = document.getElementById('auscultationPolyLeft');
+      const badge = document.getElementById('scapulaProtractBadge');
+      const btn = document.getElementById('protractScapulaBtn');
+
+      if (isScapulaProtracted) {
+        leftScap.setAttribute('class', 'scapula-protracted');
+        polyLeft.setAttribute('points', '358,412 272,456 254,378');
+        badge.classList.remove('hidden');
+        btn.textContent = 'Reset Scapula Position';
+      } else {
+        leftScap.setAttribute('class', 'scapula-normal');
+        polyLeft.setAttribute('points', '358,412 292,452 276,385');
+        badge.classList.add('hidden');
+        btn.textContent = 'Fold Arms (Protract Scapula)';
+      }
+    }
+
+    function setCategoryFilter(cat) {
+      currentCategoryFilter = cat;
+      document.querySelectorAll('.cat-pill').forEach(btn => {
+        if (btn.getAttribute('data-cat') === cat) {
+          btn.className = 'cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-sky-600 text-white';
+        } else {
+          btn.className = 'cat-pill px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700';
+        }
+      });
+      renderStructureChecklist();
+    }
+
+    function renderStructureChecklist() {
+      const container = document.getElementById('structureListContainer');
+      const query = (document.getElementById('structureSearchInput').value || '').trim().toLowerCase();
+      container.innerHTML = '';
+
+      const filtered = ANATOMY_STRUCTURES.filter(st => {
+        const matchesCat = currentCategoryFilter === 'all' || st.category === currentCategoryFilter;
+        const matchesQuery =
+          !query ||
+          st.name.toLowerCase().includes(query) ||
+          st.innervation.toLowerCase().includes(query) ||
+          st.bloodSupply.toLowerCase().includes(query) ||
+          st.subCategory.toLowerCase().includes(query);
+        return matchesCat && matchesQuery;
+      });
+
+      filtered.forEach(st => {
+        const isSelected = st.id === selectedStructureId;
+        const isStudied = studiedSet.has(st.id);
+
+        const dotColor =
+          st.category === 'Muscle' ? 'bg-rose-500' :
+          st.category === 'Vessel' ? 'bg-red-500' :
+          st.category === 'Nerve' ? 'bg-amber-400' :
+          st.category === 'Clinical Space' ? 'bg-sky-400' : 'bg-slate-300';
+
+        const item = document.createElement('button');
+        item.className = `w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
+          isSelected
+            ? 'bg-sky-600/20 border-sky-500 text-white shadow-md'
+            : 'bg-lab-950/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700'
+        }`;
+        item.onclick = () => {
+          if (currentAppMode === 'exam') {
+            switchAppMode('study');
+          }
+          selectStructure(st.id);
+        };
+
+        item.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-6 h-6 rounded-lg font-mono text-[11px] font-bold flex items-center justify-center shrink-0 ${
+              isSelected ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'
+            }">
+              #${st.pinNum}
+            </span>
+            <div class="min-w-0">
+              <div class="text-xs font-bold truncate flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full ${dotColor} shrink-0"></span>
+                <span class="truncate">${st.name}</span>
+              </div>
+              <div class="text-[10px] text-slate-400 truncate">
+                L${st.layer} • ${st.category === 'Muscle' ? st.innervation.split(';')[0] : st.subCategory}
+              </div>
+            </div>
+          </div>
+          <span class="shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${
+            isStudied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-600'
+          }">
+            ✓
+          </span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function stepStructure(delta) {
+      const idx = ANATOMY_STRUCTURES.findIndex(x => x.id === selectedStructureId);
+      const nextIdx = (idx + delta + ANATOMY_STRUCTURES.length) % ANATOMY_STRUCTURES.length;
+      selectStructure(ANATOMY_STRUCTURES[nextIdx].id);
+    }
+
+    function updateStudiedCounter() {
+      document.getElementById('studiedCounterBadge').textContent = `${studiedSet.size} / ${ANATOMY_STRUCTURES.length}`;
+    }
+
+    function markAllStudied() {
+      ANATOMY_STRUCTURES.forEach(s => studiedSet.add(s.id));
+      updateStudiedCounter();
+      renderStructureChecklist();
+    }
+
+    function toggleCadaverPins() {
+      showPins = !showPins;
+      const btn = document.getElementById('togglePinsBtn');
+      btn.textContent = `Pins: ${showPins ? 'ON' : 'OFF'}`;
+      renderCadaverPins();
+    }
+
+    function toggleAlwaysShowNeurovascular() {
+      alwaysShowNeurovascular = !alwaysShowNeurovascular;
+      const btn = document.getElementById('toggleNeurovascularBtn');
+      btn.textContent = `X-Ray Nerves/Vessels: ${alwaysShowNeurovascular ? 'ON' : 'OFF'}`;
+      btn.className = alwaysShowNeurovascular
+        ? 'px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/25 text-amber-300 border border-amber-500/50 transition'
+        : 'px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition';
+      setDissectionLayer(currentLayer, true);
+    }
+
+    function switchAppMode(mode) {
+      currentAppMode = mode;
+      const studyBtn = document.getElementById('modeStudyBtn');
+      const examBtn = document.getElementById('modeExamBtn');
+      const studyPanel = document.getElementById('studyInspectorPanel');
+      const examPanel = document.getElementById('examSimulatorPanel');
+      const examPinLayer = document.getElementById('examTaggedPinLayer');
+
+      if (mode === 'study') {
+        studyBtn.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-sky-600 text-white shadow-md shadow-sky-900/50';
+        examBtn.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white';
+        studyPanel.classList.remove('hidden');
+        examPanel.classList.add('hidden');
+        examPinLayer.classList.add('hidden');
+        selectStructure(selectedStructureId);
+      } else {
+        examBtn.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-amber-500 text-slate-950 shadow-md shadow-amber-900/50';
+        studyBtn.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white';
+        studyPanel.classList.add('hidden');
+        examPanel.classList.remove('hidden');
+        examPinLayer.classList.remove('hidden');
+        renderCadaverPins();
+        loadExamStation(currentExamIndex);
+      }
+    }
+
+    function startFeaturedUserExamples() {
+      switchAppMode('exam');
+      document.getElementById('examDeckFilter').value = 'featured';
+      rebuildExamDeck();
+    }
+
+    function quizCurrentStructureNow() {
+      const matchingIndex = PRACTICAL_QUESTIONS.findIndex(q => q.structureId === selectedStructureId);
+      switchAppMode('exam');
+      document.getElementById('examDeckFilter').value = 'all';
+      activeExamDeck = [...PRACTICAL_QUESTIONS];
+      currentExamIndex = matchingIndex >= 0 ? matchingIndex : 0;
+      loadExamStation(currentExamIndex);
+    }
+
+    function rebuildExamDeck() {
+      const filter = document.getElementById('examDeckFilter').value;
+      if (filter === 'all') {
+        activeExamDeck = [...PRACTICAL_QUESTIONS];
+      } else if (filter === 'featured') {
+        activeExamDeck = PRACTICAL_QUESTIONS.filter(q => q.featured);
+      } else if (filter === 'identify') {
+        activeExamDeck = PRACTICAL_QUESTIONS.filter(q => q.type === 'identify');
+      } else if (filter === 'innervation') {
+        activeExamDeck = PRACTICAL_QUESTIONS.filter(q => q.type === 'innervation');
+      } else if (filter === 'clinical') {
+        activeExamDeck = PRACTICAL_QUESTIONS.filter(q => q.type === 'clinical' || q.structureId === 'spinal_accessory_nerve' || q.structureId === 'dorsal_scapular_nerve');
+      }
+      currentExamIndex = 0;
+      loadExamStation(0);
+    }
+
+    function setExamFormat(fmt) {
+      examFormat = fmt;
+      const writeBtn = document.getElementById('formatWriteBtn');
+      const mcqBtn = document.getElementById('formatMcqBtn');
+      const writeBox = document.getElementById('examWriteInContainer');
+      const mcqBox = document.getElementById('examMcqContainer');
+
+      if (fmt === 'write') {
+        writeBtn.className = 'py-1 rounded-lg text-[11px] font-semibold bg-amber-500 text-slate-950 transition';
+        mcqBtn.className = 'py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white transition';
+        writeBox.classList.remove('hidden');
+        mcqBox.classList.add('hidden');
+      } else {
+        mcqBtn.className = 'py-1 rounded-lg text-[11px] font-semibold bg-amber-500 text-slate-950 transition';
+        writeBtn.className = 'py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white transition';
+        writeBox.classList.add('hidden');
+        mcqBox.classList.remove('hidden');
+      }
+      loadExamStation(currentExamIndex);
+    }
+
+    function loadExamStation(index) {
+      if (!activeExamDeck.length) return;
+      currentExamIndex = (index + activeExamDeck.length) % activeExamDeck.length;
+      const station = activeExamDeck[currentExamIndex];
+      const st = ANATOMY_STRUCTURES.find(s => s.id === station.structureId);
+      examAnsweredCurrent = false;
+
+      // Adjust cadaver layer automatically so tagged structure is clearly visible
+      setDissectionLayer(station.layer, true);
+
+      // Highlight only the tagged structure on the cadaver
+      document.querySelectorAll('.cadaver-structure').forEach(el => {
+        el.classList.remove('selected-structure');
+      });
+      const targetSvg = document.getElementById(st.svgId);
+      if (targetSvg) {
+        targetSvg.classList.add('selected-structure');
+      }
+
+      // Draw Physical Lab Practical Flag Pin at the tagged structure's coordinates
+      renderExamFlagPin(st);
+
+      // Update UI Station Header
+      document.getElementById('examStationNum').textContent = currentExamIndex + 1;
+      document.getElementById('examStationTotal').textContent = activeExamDeck.length;
+      document.getElementById('examTagPinNumber').textContent = st.pinNum;
+      document.getElementById('examDissectionLayerHint').textContent = `Layer ${station.layer} Prosection`;
+      document.getElementById('examQuestionPrompt').textContent = station.prompt;
+      document.getElementById('examVisualClue').textContent = station.clue;
+
+      const typeBadge = document.getElementById('examQuestionTypeBadge');
+      if (station.type === 'identify') {
+        typeBadge.textContent = 'Identify Tagged Structure';
+        typeBadge.className = 'px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30';
+      } else if (station.type === 'innervation') {
+        typeBadge.textContent = 'Identify Innervating Nerve';
+        typeBadge.className = 'px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+      } else {
+        typeBadge.textContent = 'Clinical Space & Borders';
+        typeBadge.className = 'px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+      }
+
+      // Reset inputs & feedback
+      const writeInput = document.getElementById('examWriteInput');
+      writeInput.value = '';
+      writeInput.disabled = false;
+      document.getElementById('submitWriteBtn').disabled = false;
+      document.getElementById('examAutocompleteBar').innerHTML = '';
+      document.getElementById('examHintBox').classList.add('hidden');
+      document.getElementById('examFeedbackBox').classList.add('hidden');
+
+      // Render Multiple Choice options
+      renderMcqOptions(station);
+
+      document.getElementById('canvasHoverReadout').innerHTML =
+        `<strong class="text-amber-300">LAB PRACTICAL TAG #${st.pinNum}:</strong> ${station.prompt}`;
+    }
+
+    function renderExamFlagPin(st) {
+      const layer = document.getElementById('examTaggedPinLayer');
+      const x = st.pinCoords.x;
+      const y = st.pinCoords.y;
+
+      layer.innerHTML = `
+        <g class="exam-flag-pin">
+          <!-- Target Pulse Ring on Muscle/Nerve -->
+          <circle cx="${x}" cy="${y}" r="14" fill="rgba(250, 204, 21, 0.22)" stroke="#facc15" stroke-width="2" stroke-dasharray="4,2" />
+          <circle cx="${x}" cy="${y}" r="4" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" />
+          <!-- Steel Dissection Pin Shaft -->
+          <line x1="${x}" y1="${y}" x2="${x + 28}" y2="${y - 48}" stroke="#f8fafc" stroke-width="3" stroke-linecap="round" />
+          <!-- Lab Practical Yellow Flag Tag -->
+          <path d="M${x + 28},${y - 48} L${x + 108},${y - 48} L${x + 98},${y - 31} L${x + 108},${y - 14} L${x + 20},${y - 14} Z"
+                fill="#facc15" stroke="#090d14" stroke-width="2" />
+          <text x="${x + 62}" y="${y - 27}" text-anchor="middle" fill="#090d14" font-family="JetBrains Mono" font-size="12" font-weight="800">
+            TAG #${st.pinNum}
+          </text>
+        </g>
+      `;
+    }
+
+    function renderMcqOptions(station) {
+      const container = document.getElementById('examMcqContainer');
+      container.innerHTML = '';
+
+      // Shuffle options deterministically or freshly
+      const shuffled = [...station.mcqOptions].sort(() => Math.random() - 0.5);
+      shuffled.forEach((opt, idx) => {
+        const letter = ['A', 'B', 'C', 'D'][idx];
+        const btn = document.createElement('button');
+        btn.className = 'w-full p-3 rounded-xl bg-lab-950 hover:bg-slate-800 border border-slate-700 text-left text-xs sm:text-sm font-semibold text-slate-200 flex items-center gap-3 transition';
+        btn.onclick = () => submitMcqAnswer(opt, btn);
+        btn.innerHTML = `
+          <span class="w-6 h-6 rounded-lg bg-slate-800 text-amber-300 font-mono text-xs font-bold flex items-center justify-center shrink-0">${letter}</span>
+          <span>${opt}</span>
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    const AUTOCOMPLETE_TERMS = [
+      'Trapezius',
+      'Latissimus dorsi',
+      'Levator scapulae',
+      'Rhomboid major',
+      'Rhomboid minor',
+      'Serratus posterior superior',
+      'Serratus posterior inferior',
+      'Splenius',
+      'Iliocostalis',
+      'Longissimus',
+      'Spinalis',
+      'Multifidus',
+      'Semispinalis',
+      'Superficial branch of transverse cervical artery',
+      'Deep branch of transverse cervical artery / dorsal scapular artery',
+      'Dorsal scapular nerve',
+      'Spinal accessory nerve / CN XI',
+      'Greater occipital nerve / dorsal ramus of C2 spinal nerve',
+      'Triangle of auscultation',
+      'Nuchal ligament',
+      'Thoracodorsal nerve',
+      'Dorsal rami of spinal nerves',
+      'Intercostal nerves (T2–T5)',
+      '6th and 7th ribs, 6th intercostal space, and Rhomboid major'
+    ];
+
+    function updateAutocompleteSuggestions() {
+      const inputVal = (document.getElementById('examWriteInput').value || '').trim().toLowerCase();
+      const bar = document.getElementById('examAutocompleteBar');
+      bar.innerHTML = '';
+      if (inputVal.length < 2) return;
+
+      const matches = AUTOCOMPLETE_TERMS.filter(t => t.toLowerCase().includes(inputVal)).slice(0, 4);
+      matches.forEach(term => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 text-[11px] font-medium border border-slate-700 transition';
+        chip.textContent = term;
+        chip.onclick = () => {
+          document.getElementById('examWriteInput').value = term;
+          bar.innerHTML = '';
+          submitWriteInAnswer();
+        };
+        bar.appendChild(chip);
+      });
+    }
+
+    function normalizeAnswer(str) {
+      return (str || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function submitWriteInAnswer() {
+      if (examAnsweredCurrent) return;
+      const raw = document.getElementById('examWriteInput').value;
+      const userNorm = normalizeAnswer(raw);
+      if (!userNorm) return;
+
+      const station = activeExamDeck[currentExamIndex];
+      const isCorrect = station.acceptedAnswers.some(acc => {
+        const accNorm = normalizeAnswer(acc);
+        return userNorm === accNorm || userNorm.includes(accNorm) || (userNorm.length >= 5 && accNorm.includes(userNorm));
+      });
+
+      finalizeStationGrading(isCorrect, raw);
+    }
+
+    function submitMcqAnswer(selectedOption, clickedBtn) {
+      if (examAnsweredCurrent) return;
+      const station = activeExamDeck[currentExamIndex];
+      const isCorrect = normalizeAnswer(selectedOption) === normalizeAnswer(station.officialAnswer) ||
+                        station.acceptedAnswers.some(a => normalizeAnswer(selectedOption).includes(normalizeAnswer(a)));
+
+      if (isCorrect) {
+        clickedBtn.className = 'w-full p-3 rounded-xl bg-emerald-500/25 border-2 border-emerald-400 text-left text-xs sm:text-sm font-bold text-emerald-200 flex items-center gap-3';
+      } else {
+        clickedBtn.className = 'w-full p-3 rounded-xl bg-rose-500/25 border-2 border-rose-400 text-left text-xs sm:text-sm font-bold text-rose-200 flex items-center gap-3';
+      }
+
+      finalizeStationGrading(isCorrect, selectedOption);
+    }
+
+    function finalizeStationGrading(isCorrect, userResponse) {
+      examAnsweredCurrent = true;
+      examAttemptedCount++;
+      if (isCorrect) examCorrectCount++;
+
+      const pct = Math.round((examCorrectCount / examAttemptedCount) * 100);
+      document.getElementById('examScoreDisplay').textContent = `${examCorrectCount} / ${examAttemptedCount} (${pct}%)`;
+
+      const station = activeExamDeck[currentExamIndex];
+      const box = document.getElementById('examFeedbackBox');
+      const title = document.getElementById('examFeedbackTitle');
+      const tag = document.getElementById('examFeedbackAcceptedTag');
+      const official = document.getElementById('examFeedbackOfficialAnswer');
+      const exp = document.getElementById('examFeedbackExplanation');
+
+      box.classList.remove('hidden');
+      if (isCorrect) {
+        box.className = 'p-4 rounded-2xl border bg-emerald-950/40 border-emerald-500/50 space-y-1.5';
+        title.className = 'text-sm font-extrabold text-emerald-300';
+        title.textContent = '✓ Correct Lab Practical Identification!';
+        tag.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300';
+        tag.textContent = '+1 STATION POINT';
+      } else {
+        box.className = 'p-4 rounded-2xl border bg-rose-950/40 border-rose-500/50 space-y-1.5';
+        title.className = 'text-sm font-extrabold text-rose-300';
+        title.textContent = `✗ Incorrect (You answered: "${userResponse}")`;
+        tag.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300';
+        tag.textContent = 'REVIEW TAG';
+      }
+
+      official.textContent = `Official Key: ${station.officialAnswer}`;
+      exp.textContent = station.explanation;
+    }
+
+    function revealExamHint() {
+      const station = activeExamDeck[currentExamIndex];
+      const st = ANATOMY_STRUCTURES.find(s => s.id === station.structureId);
+      const hintBox = document.getElementById('examHintBox');
+      hintBox.classList.remove('hidden');
+
+      if (station.type === 'innervation') {
+        hintBox.innerHTML = `<strong>Anatomical Hint:</strong> The tagged structure is <strong>${st.name}</strong> (${st.subCategory}). Its blood supply is <em>${st.bloodSupply}</em>.`;
+      } else {
+        hintBox.innerHTML = `<strong>Anatomical Hint:</strong> Innervation: <em>${st.innervation}</em> • Attachments: <em>${st.origin}</em> → <em>${st.insertion}</em>.`;
+      }
+    }
+
+    function nextExamStation() {
+      loadExamStation(currentExamIndex + 1);
+    }
+
+    function prevExamStation() {
+      loadExamStation(currentExamIndex - 1);
+    }
+
+    function resetExamProgress() {
+      examCorrectCount = 0;
+      examAttemptedCount = 0;
+      document.getElementById('examScoreDisplay').textContent = '0 / 0 (100%)';
+      loadExamStation(0);
+    }
+
+    window.onload = function () {
+      setDissectionLayer(1, true);
+      selectStructure('trapezius');
+      renderStructureChecklist();
+    };
+  </script>
+</body>
+</html>
